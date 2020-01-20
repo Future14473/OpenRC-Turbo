@@ -2,7 +2,7 @@ package org.futurerobotics.botsystem
 
 import kotlinx.coroutines.*
 import kotlinx.coroutines.test.runBlockingTest
-import org.junit.jupiter.api.Test
+import org.junit.Test
 
 @Suppress("EXPERIMENTAL_API_USAGE")
 internal class RandomTests {

@@ -32,6 +32,19 @@ private val intakeConfigs = arrayOf(
     SimpleMotorConfig("IntakeRight", DcMotorSimple.Direction.REVERSE)
 )
 
+//TODO
+private val linkageConfigs = arrayOf(
+    RangedServoConfig("LinkageLeft", 0.0..1.0, 0.0..1.0),
+    RangedServoConfig("LinkageRight", 0.0..1.0, 0.0..1.0)
+)
+//TODO
+val rotaterConfig = RangedServoConfig("Rotater", 0.0..1.0, 0.0..1.0)
+
+//TODO
+val clawConfig = ServoDoorConfig("Claw", 0.0..1.0, true)
+
+//TODO
+val dropperConfig = ServoDoorConfig("Dropper", 0.0..1.0, false)
 
 class Hardware : BaseElement() {
 
@@ -40,6 +53,9 @@ class Hardware : BaseElement() {
 
     private fun <T : Any> Array<out HardwareMapConfig<T>>.getAllOrNull() =
         hardwareMap { tryGetAll(asList()) }
+
+    private fun <T : Any> HardwareMapConfig<T>.getOrNull() =
+        hardwareMap { tryGet(this@getOrNull) }
 
     val hardwareMap: HardwareMap by dependency(OpModeElement::class) { opMode.hardwareMap }
 
@@ -51,5 +67,13 @@ class Hardware : BaseElement() {
 
     val gyro by hardwareMap { tryGet(BNO055IMU::class.java, imuName)?.let { IMUGyro(it, true) } }
 
-    val hubs by hardwareMap { getAll(ExpansionHubEx::class.java).takeIf { it.size ==2 } }
+    val hubs: List<ExpansionHubEx>? by hardwareMap { getAll(ExpansionHubEx::class.java).takeIf { it.size == 2 } }
+
+    val linkageServos by linkageConfigs.getAllOrNull()
+
+    val rotater by rotaterConfig.getOrNull()
+
+    val claw by clawConfig.getOrNull()
+
+    val dropper by dropperConfig.getOrNull()
 }

@@ -3,6 +3,7 @@ package org.firstinspires.ftc.teamcode.hardware
 import com.qualcomm.robotcore.hardware.DcMotorEx
 import com.qualcomm.robotcore.hardware.DcMotorSimple
 import com.qualcomm.robotcore.hardware.HardwareMap
+import com.qualcomm.robotcore.hardware.Servo
 
 /**
  * Something which can be extracted from a [HardwareMap].
@@ -35,6 +36,32 @@ data class MotorConfig(
         return FtcMotor(motor, ticksPerRev)
     }
 }
+
+data class RangedServoConfig(
+    val name: String,
+    val servoRange: ClosedFloatingPointRange<Double>,
+    val angleRange: ClosedFloatingPointRange<Double>
+) : HardwareMapConfig<FtcServo> {
+
+    override fun tryGetFrom(map: HardwareMap): FtcServo? {
+        val servo = map.tryGet(Servo::class.java, name) ?: return null
+        return FtcServo(servo, servoRange, angleRange)
+    }
+}
+
+
+data class ServoDoorConfig(
+    val name: String,
+    val closeOpenRange: ClosedFloatingPointRange<Double>,
+    val initialIsOpen: Boolean
+) : HardwareMapConfig<ServoDoor> {
+
+    override fun tryGetFrom(map: HardwareMap): ServoDoor? {
+        val servo = map.tryGet(Servo::class.java, name) ?: return null
+        return ServoDoor(servo, closeOpenRange, initialIsOpen)
+    }
+}
+
 
 fun <T> HardwareMap.tryGet(config: HardwareMapConfig<T>) = config.tryGetFrom(this)
 fun <T> HardwareMap.tryGetAll(list: List<HardwareMapConfig<T>>): List<T>? {

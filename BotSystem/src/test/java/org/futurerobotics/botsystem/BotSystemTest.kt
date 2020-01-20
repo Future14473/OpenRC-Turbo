@@ -4,7 +4,7 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.debug.DebugProbes
 import kotlinx.coroutines.test.runBlockingTest
-import org.junit.jupiter.api.Test
+import org.junit.Test
 
 class BotSystemTest {
     @UseExperimental(ExperimentalCoroutinesApi::class)

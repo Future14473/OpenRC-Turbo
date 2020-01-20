@@ -1,18 +1,36 @@
 package org.firstinspires.ftc.teamcode.system
 
+import com.qualcomm.robotcore.hardware.Gamepad
 import org.firstinspires.ftc.teamcode.ROBOT_LOOP_PERIOD
 import org.firstinspires.ftc.teamcode.hardware.*
-import org.futurerobotics.botsystem.BaseElement
-import org.futurerobotics.botsystem.LoopManager
-import org.futurerobotics.botsystem.LoopValue
-import org.futurerobotics.botsystem.get
+import org.futurerobotics.botsystem.*
+import org.futurerobotics.botsystem.ftc.OpModeElement
 import org.futurerobotics.jargon.linalg.Vec
 import org.futurerobotics.jargon.linalg.mapToVec
 
 class ControlLoop : LoopManager(ROBOT_LOOP_PERIOD)
+class ButtonsElement : BaseElement() {
+    private val opMode by dependency(OpModeElement::class) { opMode }
+    private val controlLoop by dependency<ControlLoop>()
+
+    val gamepad1Buttons by buttonsLoop(opMode.gamepad1)
+
+    val gamepad2Buttons by buttonsLoop(opMode.gamepad2)
+
+    private fun buttonsLoop(gamepad: Gamepad): Property<LoopValue<Buttons>> {
+        val buttons = Buttons(gamepad)
+        return onInit {
+            controlLoop.addElement {
+                buttons.updateNow()
+                buttons
+            }
+        }
+    }
+}
 
 @Suppress("DuplicatedCode")
 class Measurements : BaseElement() {
+
     init {
         dependsOn<Hardware>()
     }
@@ -56,25 +74,25 @@ class Measurements : BaseElement() {
                 """.trimMargin()
         )
         controlLoop.apply {
-            bulkData = controlLoop.addLoop {
+            bulkData = controlLoop.addElement {
                 MultipleBulkData(hubs.map { it.bulkInputData })
             }
             val imu = hardware.gyro
             if (imu != null) {
-                _angle = addLoop {
+                _angle = addElement {
                     imu.angle
                 }
-                _angularVelocity = addLoop {
+                _angularVelocity = addElement {
                     imu.angularVelocity
                 }
             }
             val wheels = hardware.wheelMotors
             if (wheels != null) {
-                _wheelPositions = addLoop {
+                _wheelPositions = addElement {
                     val bulk = bulkData.currentValue.await()
                     wheels.mapToVec { bulk.getMotorCurrentAngle(it) }
                 }
-                _wheelVelocities = addLoop {
+                _wheelVelocities = addElement {
                     val bulk = bulkData.currentValue.await()
                     wheels.mapToVec { bulk.getMotorAngularVelocity(it) }
                 }
@@ -82,11 +100,11 @@ class Measurements : BaseElement() {
 
             val lifts = hardware.liftsMotors
             if (lifts != null) {
-                _liftPositions = addLoop {
+                _liftPositions = addElement {
                     val bulk = bulkData.currentValue.await()
                     lifts.mapToVec { bulk.getMotorCurrentAngle(it) }
                 }
-                _liftVelocities = addLoop {
+                _liftVelocities = addElement {
                     val bulk = bulkData.currentValue.await()
                     lifts.mapToVec { bulk.getMotorAngularVelocity(it) }
                 }

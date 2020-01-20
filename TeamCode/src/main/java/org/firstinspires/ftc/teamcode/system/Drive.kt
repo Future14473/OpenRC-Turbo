@@ -3,7 +3,7 @@ package org.firstinspires.ftc.teamcode.system
 import org.firstinspires.ftc.teamcode.ROBOT_LOOP_PERIOD
 import org.firstinspires.ftc.teamcode.hardware.Hardware
 import org.futurerobotics.botsystem.Element
-import org.futurerobotics.botsystem.LoopElement
+import org.futurerobotics.botsystem.SyncedElement
 import org.futurerobotics.botsystem.LoopValue
 import org.futurerobotics.jargon.linalg.*
 import org.futurerobotics.jargon.math.MotionState
@@ -98,7 +98,7 @@ interface DriveVelocity : Element {
 }
 
 @UseExperimental(ExperimentalStateSpace::class)
-class DriveController : LoopElement<Unit>() {
+class DriveController : SyncedElement<Unit>() {
 
     init {
         loopOn<ControlLoop>()

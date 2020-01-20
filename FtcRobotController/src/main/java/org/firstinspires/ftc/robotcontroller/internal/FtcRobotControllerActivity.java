@@ -33,11 +33,7 @@ package org.firstinspires.ftc.robotcontroller.internal;
 
 import android.app.ActionBar;
 import android.app.Activity;
-import android.content.ComponentName;
-import android.content.Context;
-import android.content.Intent;
-import android.content.ServiceConnection;
-import android.content.SharedPreferences;
+import android.content.*;
 import android.content.res.Configuration;
 import android.content.res.Resources;
 import android.hardware.usb.UsbDevice;
@@ -59,20 +55,11 @@ import android.widget.LinearLayout;
 import android.widget.LinearLayout.LayoutParams;
 import android.widget.PopupMenu;
 import android.widget.TextView;
-
 import com.google.blocks.ftcrobotcontroller.ProgrammingWebHandlers;
 import com.google.blocks.ftcrobotcontroller.runtime.BlocksOpMode;
-import com.qualcomm.ftccommon.ClassManagerFactory;
-import com.qualcomm.ftccommon.FtcAboutActivity;
-import com.qualcomm.ftccommon.FtcEventLoop;
-import com.qualcomm.ftccommon.FtcEventLoopIdle;
-import com.qualcomm.ftccommon.FtcRobotControllerService;
+import com.qualcomm.ftccommon.*;
 import com.qualcomm.ftccommon.FtcRobotControllerService.FtcRobotControllerBinder;
-import com.qualcomm.ftccommon.FtcRobotControllerSettingsActivity;
-import com.qualcomm.ftccommon.LaunchActivityConstantsList;
 import com.qualcomm.ftccommon.LaunchActivityConstantsList.RequestCode;
-import com.qualcomm.ftccommon.Restarter;
-import com.qualcomm.ftccommon.UpdateUI;
 import com.qualcomm.ftccommon.configuration.EditParameters;
 import com.qualcomm.ftccommon.configuration.FtcLoadFileActivity;
 import com.qualcomm.ftccommon.configuration.RobotConfigFile;
@@ -86,28 +73,17 @@ import com.qualcomm.robotcore.hardware.configuration.LynxConstants;
 import com.qualcomm.robotcore.hardware.configuration.Utility;
 import com.qualcomm.robotcore.robot.Robot;
 import com.qualcomm.robotcore.robot.RobotState;
-import com.qualcomm.robotcore.util.Device;
-import com.qualcomm.robotcore.util.Dimmer;
-import com.qualcomm.robotcore.util.ImmersiveMode;
-import com.qualcomm.robotcore.util.RobotLog;
-import com.qualcomm.robotcore.util.WebServer;
+import com.qualcomm.robotcore.util.*;
 import com.qualcomm.robotcore.wifi.NetworkConnection;
 import com.qualcomm.robotcore.wifi.NetworkConnectionFactory;
 import com.qualcomm.robotcore.wifi.NetworkType;
-
 import org.firstinspires.ftc.ftccommon.external.SoundPlayingRobotMonitor;
 import org.firstinspires.ftc.ftccommon.internal.FtcRobotControllerWatchdogService;
 import org.firstinspires.ftc.ftccommon.internal.ProgramAndManageActivity;
 import org.firstinspires.ftc.onbotjava.OnBotJavaHelperImpl;
-import org.firstinspires.ftc.onbotjava.OnBotJavaProgrammingMode;
 import org.firstinspires.ftc.robotcore.external.navigation.MotionDetection;
 import org.firstinspires.ftc.robotcore.internal.hardware.android.AndroidBoard;
-import org.firstinspires.ftc.robotcore.internal.network.DeviceNameManagerFactory;
-import org.firstinspires.ftc.robotcore.internal.network.PreferenceRemoterRC;
-import org.firstinspires.ftc.robotcore.internal.network.StartResult;
-import org.firstinspires.ftc.robotcore.internal.network.WifiDirectChannelChanger;
-import org.firstinspires.ftc.robotcore.internal.network.WifiMuteEvent;
-import org.firstinspires.ftc.robotcore.internal.network.WifiMuteStateMachine;
+import org.firstinspires.ftc.robotcore.internal.network.*;
 import org.firstinspires.ftc.robotcore.internal.opmode.ClassManager;
 import org.firstinspires.ftc.robotcore.internal.system.AppUtil;
 import org.firstinspires.ftc.robotcore.internal.system.Assert;
@@ -290,28 +266,28 @@ public class FtcRobotControllerActivity extends Activity
     DeviceNameManagerFactory.getInstance().start(deviceNameStartResult);
 
     PreferenceRemoterRC.getInstance().start(prefRemoterStartResult);
-
-    receivedUsbAttachmentNotifications = new ConcurrentLinkedQueue<UsbDevice>();
-    eventLoop = null;
-
-    setContentView(R.layout.activity_ftc_controller);
-
-    preferencesHelper = new PreferencesHelper(TAG, context);
-    preferencesHelper.writeBooleanPrefIfDifferent(context.getString(R.string.pref_rc_connected), true);
-    preferencesHelper.getSharedPreferences().registerOnSharedPreferenceChangeListener(sharedPreferencesListener);
-
-    entireScreenLayout = (LinearLayout) findViewById(R.id.entire_screen);
-    buttonMenu = (ImageButton) findViewById(R.id.menu_buttons);
-    buttonMenu.setOnClickListener(new View.OnClickListener() {
-      @Override
-      public void onClick(View v) {
-        PopupMenu popupMenu = new PopupMenu(FtcRobotControllerActivity.this, v);
-        popupMenu.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
-          @Override
-          public boolean onMenuItemClick(MenuItem item) {
-            return onOptionsItemSelected(item); // Delegate to the handler for the hardware menu button
-          }
-        });
+	
+	  receivedUsbAttachmentNotifications = new ConcurrentLinkedQueue<UsbDevice>();
+	  eventLoop = null;
+	
+	  setContentView(R.layout.activity_ftc_controller);
+	
+	  preferencesHelper = new PreferencesHelper(TAG, context);
+	  preferencesHelper.writeBooleanPrefIfDifferent(context.getString(R.string.pref_rc_connected), true);
+	  preferencesHelper.getSharedPreferences().registerOnSharedPreferenceChangeListener(sharedPreferencesListener);
+	
+	  entireScreenLayout = findViewById(R.id.entire_screen);
+	  buttonMenu = findViewById(R.id.menu_buttons);
+	  buttonMenu.setOnClickListener(new View.OnClickListener() {
+		  @Override
+		  public void onClick(View v) {
+			  PopupMenu popupMenu = new PopupMenu(FtcRobotControllerActivity.this, v);
+			  popupMenu.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
+				  @Override
+				  public boolean onMenuItemClick(MenuItem item) {
+					  return onOptionsItemSelected(item); // Delegate to the handler for the hardware menu button
+				  }
+			  });
         popupMenu.inflate(R.menu.ftc_robot_controller);
         popupMenu.show();
       }
@@ -332,33 +308,33 @@ public class FtcRobotControllerActivity extends Activity
       ClassManagerFactory.registerFilters();
       ClassManagerFactory.processAllClasses();
     }
-
-    cfgFileMgr = new RobotConfigFileManager(this);
-
-    // Clean up 'dirty' status after a possible crash
-    RobotConfigFile configFile = cfgFileMgr.getActiveConfig();
-    if (configFile.isDirty()) {
-      configFile.markClean();
-      cfgFileMgr.setActiveConfig(false, configFile);
-    }
-
-    textDeviceName = (TextView) findViewById(R.id.textDeviceName);
-    textNetworkConnectionStatus = (TextView) findViewById(R.id.textNetworkConnectionStatus);
-    textRobotStatus = (TextView) findViewById(R.id.textRobotStatus);
-    textOpMode = (TextView) findViewById(R.id.textOpMode);
-    textErrorMessage = (TextView) findViewById(R.id.textErrorMessage);
-    textGamepad[0] = (TextView) findViewById(R.id.textGamepad1);
-    textGamepad[1] = (TextView) findViewById(R.id.textGamepad2);
-    immersion = new ImmersiveMode(getWindow().getDecorView());
-    dimmer = new Dimmer(this);
-    dimmer.longBright();
-
-    programmingModeManager = new ProgrammingModeManager();
-    programmingModeManager.register(new ProgrammingWebHandlers());
-    programmingModeManager.register(new OnBotJavaProgrammingMode());
-
-    updateUI = createUpdateUI();
-    callback = createUICallback(updateUI);
+	
+	  cfgFileMgr = new RobotConfigFileManager(this);
+	
+	  // Clean up 'dirty' status after a possible crash
+	  RobotConfigFile configFile = cfgFileMgr.getActiveConfig();
+	  if (configFile.isDirty()) {
+		  configFile.markClean();
+		  cfgFileMgr.setActiveConfig(false, configFile);
+	  }
+	
+	  textDeviceName = findViewById(R.id.textDeviceName);
+	  textNetworkConnectionStatus = findViewById(R.id.textNetworkConnectionStatus);
+	  textRobotStatus = findViewById(R.id.textRobotStatus);
+	  textOpMode = findViewById(R.id.textOpMode);
+	  textErrorMessage = findViewById(R.id.textErrorMessage);
+	  textGamepad[0] = findViewById(R.id.textGamepad1);
+	  textGamepad[1] = findViewById(R.id.textGamepad2);
+	  immersion = new ImmersiveMode(getWindow().getDecorView());
+	  dimmer = new Dimmer(this);
+	  dimmer.longBright();
+	
+	  programmingModeManager = new ProgrammingModeManager();
+	  programmingModeManager.register(new ProgrammingWebHandlers());
+//    programmingModeManager.register(new OnBotJavaProgrammingMode());
+	
+	  updateUI = createUpdateUI();
+	  callback = createUICallback(updateUI);
 
     PreferenceManager.setDefaultValues(this, R.xml.app_settings, false);
 
@@ -526,33 +502,36 @@ public class FtcRobotControllerActivity extends Activity
       immersion.cancelSystemUIHide();
     }
   }
-
-
-  @Override
-  public boolean onCreateOptionsMenu(Menu menu) {
-    getMenuInflater().inflate(R.menu.ftc_robot_controller, menu);
-    return true;
-  }
-
-  private boolean isRobotRunning() {
-    if (controllerService == null) {
-      return false;
-    }
-
-    Robot robot = controllerService.getRobot();
-
-    if ((robot == null) || (robot.eventLoopManager == null)) {
-      return false;
-    }
-
-    RobotState robotState = robot.eventLoopManager.state;
-
-    if (robotState != RobotState.RUNNING) {
-      return false;
-    } else {
-      return true;
-    }
-  }
+	
+	  @Override
+	  public boolean onCreateOptionsMenu(Menu menu) {
+		  getMenuInflater().inflate(R.menu.ftc_robot_controller, menu);
+		  return true;
+	  }
+	
+	  /**
+	   * Updates the orientation of monitorContainer (which contains cameraMonitorView and
+	   * tfodMonitorView) based on the given configuration. Makes the children split the space.
+	   */
+	  private void updateMonitorLayout(Configuration configuration) {
+		  LinearLayout monitorContainer = findViewById(R.id.monitorContainer);
+		  if (configuration.orientation == Configuration.ORIENTATION_LANDSCAPE) {
+			  // When the phone is landscape, lay out the monitor views horizontally.
+			  monitorContainer.setOrientation(LinearLayout.HORIZONTAL);
+			  for (int i = 0; i < monitorContainer.getChildCount(); i++) {
+				  View view = monitorContainer.getChildAt(i);
+				  view.setLayoutParams(new LayoutParams(0, LayoutParams.MATCH_PARENT, 1 /* weight */));
+			  }
+		  } else {
+			  // When the phone is portrait, lay out the monitor views vertically.
+			  monitorContainer.setOrientation(LinearLayout.VERTICAL);
+			  for (int i = 0; i < monitorContainer.getChildCount(); i++) {
+				  View view = monitorContainer.getChildAt(i);
+				  view.setLayoutParams(new LayoutParams(LayoutParams.MATCH_PARENT, 0, 1 /* weight */));
+			  }
+		  }
+		  monitorContainer.requestLayout();
+	  }
 
   @Override
   public boolean onOptionsItemSelected(MenuItem item) {
@@ -598,49 +577,42 @@ public class FtcRobotControllerActivity extends Activity
       finish();
       return true;
     }
-
-   return super.onOptionsItemSelected(item);
+	
+	  return super.onOptionsItemSelected(item);
   }
-
-  @Override
-  public void onConfigurationChanged(Configuration newConfig) {
-    super.onConfigurationChanged(newConfig);
-    // don't destroy assets on screen rotation
-    updateMonitorLayout(newConfig);
-  }
-
-  /**
-   * Updates the orientation of monitorContainer (which contains cameraMonitorView and
-   * tfodMonitorView) based on the given configuration. Makes the children split the space.
-   */
-  private void updateMonitorLayout(Configuration configuration) {
-    LinearLayout monitorContainer = (LinearLayout) findViewById(R.id.monitorContainer);
-    if (configuration.orientation == Configuration.ORIENTATION_LANDSCAPE) {
-      // When the phone is landscape, lay out the monitor views horizontally.
-      monitorContainer.setOrientation(LinearLayout.HORIZONTAL);
-      for (int i = 0; i < monitorContainer.getChildCount(); i++) {
-        View view = monitorContainer.getChildAt(i);
-        view.setLayoutParams(new LayoutParams(0, LayoutParams.MATCH_PARENT, 1 /* weight */));
-      }
-    } else {
-      // When the phone is portrait, lay out the monitor views vertically.
-      monitorContainer.setOrientation(LinearLayout.VERTICAL);
-      for (int i = 0; i < monitorContainer.getChildCount(); i++) {
-        View view = monitorContainer.getChildAt(i);
-        view.setLayoutParams(new LayoutParams(LayoutParams.MATCH_PARENT, 0, 1 /* weight */));
-      }
-    }
-    monitorContainer.requestLayout();
-  }
-
-  @Override
-  protected void onActivityResult(int request, int result, Intent intent) {
-    if (request == REQUEST_CONFIG_WIFI_CHANNEL) {
-      if (result == RESULT_OK) {
-        AppUtil.getInstance().showToast(UILocation.BOTH, context.getString(R.string.toastWifiConfigurationComplete));
-      }
-    }
-    // was some historical confusion about launch codes here, so we err safely
+	
+	  @Override
+	  public void onConfigurationChanged(Configuration newConfig) {
+		  super.onConfigurationChanged(newConfig);
+		  // don't destroy assets on screen rotation
+		  updateMonitorLayout(newConfig);
+	  }
+	
+	  private boolean isRobotRunning() {
+		  if (controllerService == null) {
+			  return false;
+		  }
+		
+		  Robot robot = controllerService.getRobot();
+		
+		  if ((robot == null) || (robot.eventLoopManager == null)) {
+			  return false;
+		  }
+		
+		  RobotState robotState = robot.eventLoopManager.state;
+		
+		  return robotState == RobotState.RUNNING;
+	  }
+	
+	  @Override
+	  protected void onActivityResult(int request, int result, Intent intent) {
+		  if (request == REQUEST_CONFIG_WIFI_CHANNEL) {
+			  if (result == RESULT_OK) {
+				  AppUtil.getInstance().showToast(UILocation.BOTH,
+						  context.getString(R.string.toastWifiConfigurationComplete));
+			  }
+		  }
+		  // was some historical confusion about launch codes here, so we err safely
     if (request == RequestCode.CONFIGURE_ROBOT_CONTROLLER.ordinal() || request == RequestCode.SETTINGS_ROBOT_CONTROLLER.ordinal()) {
       // We always do a refresh, whether it was a cancel or an OK, for robustness
       cfgFileMgr.getActiveConfigAndUpdateUI();

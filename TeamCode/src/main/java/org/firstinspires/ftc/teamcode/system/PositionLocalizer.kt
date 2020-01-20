@@ -1,7 +1,7 @@
 package org.firstinspires.ftc.teamcode.system
 
 import org.firstinspires.ftc.teamcode.hardware.Hardware
-import org.futurerobotics.botsystem.LoopElement
+import org.futurerobotics.botsystem.SyncedElement
 import org.futurerobotics.botsystem.get
 import org.futurerobotics.jargon.control.EncoderGyroLocalizer
 import org.futurerobotics.jargon.linalg.Vec
@@ -26,7 +26,7 @@ private val localizerModel = run {
 }
 
 
-class PositionLocalizer : LoopElement<Pose2d>() {
+class PositionLocalizer : SyncedElement<Pose2d>() {
 
     init {
         dependsOn<Hardware>()
@@ -49,7 +49,7 @@ class PositionLocalizer : LoopElement<Pose2d>() {
 }
 
 
-class VelocityObserver : LoopElement<Vec>() {
+class VelocityObserver : SyncedElement<Vec>() {
 
     init {
         dependsOn<Hardware>()

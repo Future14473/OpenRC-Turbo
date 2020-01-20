@@ -22,8 +22,8 @@ import kotlin.reflect.KProperty
 abstract class BaseElement : Element {
 
     private var delegates: MutableList<BotSystemGettingDelegate<*>>? = mutableListOf()
-    private val _dependsOn = HashSet<Class<out Element>>()
-    final override val dependsOn: Set<Class<out Element>> =
+    private val _dependsOn = HashSet<Class<*>>()
+    final override val dependsOn: Set<Class<*>> =
         Collections.unmodifiableSet(_dependsOn)
     /**
      * The bot system, initialized on init.
@@ -48,19 +48,19 @@ abstract class BaseElement : Element {
 
 
     /** Declares additional dependencies on the given [classes]. */
-    protected fun dependsOn(vararg classes: Class<out Element>) {
+    protected fun dependsOn(vararg classes: Class<*>) {
         _dependsOn += classes
     }
 
     /** Declares additional dependencies on the given [classes]. */
     @JvmSynthetic
-    protected fun dependsOn(vararg classes: KClass<out Element>) {
+    protected fun dependsOn(vararg classes: KClass<*>) {
         _dependsOn += classes.map { it.java }
     }
 
     /** Declares additional dependencies on the given class */
     @JvmSynthetic
-    protected inline fun <reified T : Element> dependsOn() {
+    protected inline fun <reified T > dependsOn() {
         dependsOn(T::class.java)
     }
 
@@ -68,7 +68,7 @@ abstract class BaseElement : Element {
      * Adds the given elementClass as a dependency, and returns a [Property] where the will be filled with the actual
      * dependency on [init].
      */
-    protected fun <T : Element> dependency(clazz: Class<T>): Property<T> {
+    protected fun <T> dependency(clazz: Class<T>): Property<T> {
         dependsOn(clazz)
         return onInit { get(clazz) }
     }
@@ -76,12 +76,12 @@ abstract class BaseElement : Element {
 
     /**[dependency]  for Kotlin */
     @JvmSynthetic
-    protected inline fun <reified T : Element> dependency(): Property<T> =
+    protected inline fun <reified T> dependency(): Property<T> =
         dependency(T::class.java)
 
     /** [dependency] for Kotlin */
     @JvmSynthetic
-    protected fun <T : Element> dependency(clazz: KClass<T>): Property<T> =
+    protected fun <T : Any> dependency(clazz: KClass<T>): Property<T> =
         dependency(clazz.java)
 
 
@@ -89,20 +89,20 @@ abstract class BaseElement : Element {
      * Adds the given elementClass as a dependency, and returns a [Property] where the will be filled with the actual
      * dependency plus [getValue] on init.
      */
-    protected inline fun <T : Element, R> dependency(clazz: Class<T>, crossinline getValue: T.() -> R): Property<R> {
+    protected inline fun <T, R> dependency(clazz: Class<T>, crossinline getValue: T.() -> R): Property<R> {
         dependsOn(clazz)
         return onInit { get(clazz).getValue() }
     }
 
     /** [dependency] for Kotlin */
     @JvmSynthetic
-    protected fun <T : Element, R> dependency(clazz: KClass<T>, getValue: T.() -> R): Property<R> =
+    protected fun <T : Any, R> dependency(clazz: KClass<T>, getValue: T.() -> R): Property<R> =
         dependency(clazz.java, getValue)
 
     /** [dependency] for Kotlin */
     @UseExperimental(ExperimentalTypeInference::class)
     @JvmSynthetic
-    protected inline fun <reified T : Element, R> dependency(@BuilderInference crossinline getValue: T.() -> R): Property<R> =
+    protected inline fun <reified T , R> dependency(@BuilderInference crossinline getValue: T.() -> R): Property<R> =
         dependency(T::class.java, getValue)
 
 

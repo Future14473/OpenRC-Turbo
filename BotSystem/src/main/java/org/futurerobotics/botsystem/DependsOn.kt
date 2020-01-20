@@ -5,13 +5,13 @@ import kotlin.reflect.KClass
 /**
  * An [Element] which only contains [dependsOn] values.
  */
-class DependsOn private constructor(override val dependsOn: Set<Class<out Element>>) : Element {
+class DependsOn private constructor(override val dependsOn: Set<Class<*>>) : Element {
 
-    constructor(vararg dependsOn: Class<out Element>) :
+    constructor(vararg dependsOn: Class<*>) :
             this(dependsOn.toHashSet())
 
-    constructor(vararg dependsOn: KClass<out Element>) :
-            this(dependsOn.mapTo(HashSet()) { it.java } as Set<Class<out Element>>)
+    constructor(vararg dependsOn: KClass<*>) :
+            this(dependsOn.mapTo(HashSet()) { it.java } as Set<Class<*>>)
 
     override fun init(botSystem: BotSystem) {
     }

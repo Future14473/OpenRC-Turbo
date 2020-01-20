@@ -3,7 +3,7 @@ package org.futurerobotics.botsystem
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
-import org.junit.jupiter.api.Test
+import org.junit.Test
 import java.util.concurrent.CancellationException
 import java.util.concurrent.Executors
 import kotlin.system.measureTimeMillis

@@ -34,7 +34,7 @@ interface BotSystem {
      * @see tryGet
      * @see getAll
      */
-    fun <E : Element> get(identifier: Class<E>): E
+    fun <E> get(identifier: Class<E>): E
 
     /**
      * Gets only ***one*** [Element] via a class, or `null` if it does not exist.
@@ -43,7 +43,7 @@ interface BotSystem {
      * @see getAll
      */
     @Suppress("UNCHECKED_CAST")
-    fun <E : Element> tryGet(identifier: Class<E>): E?
+    fun <E> tryGet(identifier: Class<E>): E?
 
     /**
      * Gets all [Element]s that are a subclass fo the given [identifier].
@@ -51,7 +51,7 @@ interface BotSystem {
      * @see get
      * @see tryGet
      */
-    fun <E : Element> getAll(identifier: Class<E>): Collection<E>
+    fun <E> getAll(identifier: Class<E>): Collection<E>
 
 
     /**
@@ -147,8 +147,8 @@ interface BotSystem {
     }
 }
 
-inline fun <reified T : Element> BotSystem.get() = get(T::class.java)
-inline fun <reified T : Element> BotSystem.tryGet() = tryGet(T::class.java)
+inline fun <reified T> BotSystem.get() = get(T::class.java)
+inline fun <reified T> BotSystem.tryGet() = tryGet(T::class.java)
 
 internal class BotSystemImpl(
     override val scope: CoroutineScope,
@@ -157,36 +157,27 @@ internal class BotSystemImpl(
 
     private val allElements = mutableSetOf<Element>()
 
-    private val mappedElements = mutableMapOf<Class<out Element>, MutableCollection<Element>>()
+    private val mappedElements = mutableMapOf<Class<*>, MutableCollection<Element>>()
 
-    private var isInited = false
+
+    internal val identifiedBy: MutableMap<Element, Set<Class<*>>> = HashMap()
 
     init {
-        val identifiers = initialElements.associateWith {
-            val elementClass = it.javaClass
-            sequence<Class<out Element>> {
-                var curClass: Class<*>? = elementClass
-                while (curClass != null && Element::class.java.isAssignableFrom(curClass)) {
-                    yield(curClass.uncheckedCast())
-                    curClass = curClass.superclass
-                }
-                elementClass.interfaces.forEach { intf ->
-                    if (Element::class.java.isAssignableFrom(intf))
-                        yield(intf.uncheckedCast())
-                }
-            }.toHashSet()
+        initialElements.forEach {
+            addToIdentifiedBy(it)
         }
         val elementsToAdd = initialElements.toMutableSet()
+
         val util = object {
-            val considering = HashSet<Class<out Element>>() //for detecting circular dependencies
-            fun resolveDependency(clazz: Class<out Element>) {
+            val considering = HashSet<Class<*>>() //for detecting circular dependencies
+            fun resolveDependency(clazz: Class<*>) {
                 if (clazz in considering) throw IllegalArgumentException("Circular dependency: $clazz")
                 if (clazz in mappedElements) return
                 considering += clazz
 
                 var added = false
                 elementsToAdd.forEach { toAddElement ->
-                    if (clazz in identifiers.getValue(toAddElement)) {
+                    if (clazz in identifiedBy.getValue(toAddElement)) {
                         elementsToAdd -= toAddElement
                         addElement(toAddElement)
                         added = true
@@ -194,7 +185,7 @@ internal class BotSystemImpl(
                 }
                 if (!added) {
                     val defaultElement = Element.tryCreateDefault(clazz)
-                        ?: throw IllegalArgumentException("Cannot create default for element dependency $clazz")
+                        ?: throw IllegalArgumentException("Cannot create default for dependency $clazz")
                     addElement(defaultElement)
                 }
                 considering -= clazz
@@ -205,9 +196,9 @@ internal class BotSystemImpl(
                 element.dependsOn.forEach {
                     resolveDependency(it)
                 }
-                identifiers.getValue(element).forEach {
-                    mappedElements
-                        .getOrPut(it) { mutableSetOf() } += element
+                addToIdentifiedBy(element)
+                identifiedBy.getValue(element).forEach {
+                    mappedElements.getOrPut(it) { mutableSetOf() } += element
                 }
                 allElements += element
             }
@@ -220,15 +211,35 @@ internal class BotSystemImpl(
         }
     }
 
+    private fun addToIdentifiedBy(element: Element) {
+        val elementClass = element.javaClass
+        identifiedBy[element] =
+
+            sequence<Class<*>> {
+                var curClass: Class<*>? = elementClass
+                while (curClass != null && Element::class.java.isAssignableFrom(curClass)) {
+                    yield(curClass.uncheckedCast())
+                    curClass = curClass.superclass
+                }
+                elementClass.interfaces.forEach { intf ->
+                    if (Element::class.java.isAssignableFrom(intf))
+                        yield(intf.uncheckedCast())
+                }
+            }.toHashSet()
+    }
+
+    private var isInited = false
+
+
     override val elements: Collection<Element> = Collections.unmodifiableCollection(allElements)
 
-    override fun <E : Element> get(identifier: Class<E>): E =
+    override fun <E> get(identifier: Class<E>): E =
         tryGet(identifier) ?: error("Element with identifier $identifier does not exist.")
 
-    override fun <E : Element> tryGet(identifier: Class<E>): E? =
+    override fun <E> tryGet(identifier: Class<E>): E? =
         mappedElements[identifier]!!.firstOrNull().uncheckedCast()
 
-    override fun <E : Element> getAll(identifier: Class<E>): Collection<E> {
+    override fun <E> getAll(identifier: Class<E>): Collection<E> {
         @Suppress("UNCHECKED_CAST")
         return mappedElements.getOrElse(identifier) { emptyList<E>() } as Collection<E>
     }

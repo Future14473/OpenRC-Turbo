@@ -4,7 +4,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.runBlockingTest
-import org.junit.jupiter.api.Test
+import org.junit.Test
 import kotlin.math.roundToInt
 
 @UseExperimental(ExperimentalCoroutinesApi::class)
@@ -24,13 +24,16 @@ class LoopSystemTest {
 class TestLoopSystem : LoopManager()
 
 
-class Slow : LoopElement<Nothing?>(TestLoopSystem::class) {
-    override suspend fun loop(): Nothing? {
+class Slow : CoroutineLoopElement() {
+    init {
+        loopOn<TestLoopSystem>()
+    }
+
+    override suspend fun loopSuspend() {
         println("Slow start")
         delay(1000)
         println("Slow end")
         println()
-        return null
     }
 
     override fun init() {
@@ -41,29 +44,42 @@ class Slow : LoopElement<Nothing?>(TestLoopSystem::class) {
     }
 }
 
-class Printer : LoopElement<Nothing?>(TestLoopSystem::class) {
-    override suspend fun loop(): Nothing? {
+class Printer : LoopElement() {
+    init {
+        loopOn<TestLoopSystem>()
+    }
+
+    override fun loop() {
         println("   Printer")
-        return null
     }
 }
 
-class Medium : LoopElement<Int>(TestLoopSystem::class) {
-    override suspend fun loop(): Int {
+class Medium : CoroutineLoopElement() {
+    init {
+        loopOn<TestLoopSystem>()
+    }
+
+    @Volatile
+    var value = 0
+        private set
+
+    override suspend fun loopSuspend() {
         delay(500)
-        return Math.random().times(400).roundToInt().also {
+        value = Math.random().times(400).roundToInt().also {
             println("       Sending $it")
         }
     }
 }
 
 
-class Waiter : LoopElement<Int>(TestLoopSystem::class) {
+class Waiter : LoopElement() {
+    init {
+        loopOn<TestLoopSystem>()
+    }
+
     private val medium: Medium by dependency()
-    override suspend fun loop(): Int {
-        println("           Awaiting")
-        val value = medium.value.await()
+    override fun loop() {
+        val value = medium.value
         println("           got $value")
-        return value
     }
 }

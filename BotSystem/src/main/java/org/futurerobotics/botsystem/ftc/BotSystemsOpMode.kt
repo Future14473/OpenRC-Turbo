@@ -20,24 +20,22 @@ import kotlin.coroutines.EmptyCoroutineContext
  * The [botSystem] will then be available.
  */
 abstract class BotSystemsOpMode(
-    initialElements: Collection<Element>,
     coroutineContext: CoroutineContext = EmptyCoroutineContext
 ) : CoroutineOpMode(coroutineContext) {
-
-    @JvmOverloads
-    constructor(vararg initialElements: Element, context: CoroutineContext = EmptyCoroutineContext) :
-            this(initialElements.asList(), context)
 
     private val lateScope = object : CoroutineScope {
         override lateinit var coroutineContext: CoroutineContext
     }
 
+    protected abstract fun getInitialElements(): Collection<Element>
+
     @Suppress("LeakingThis")
-    protected val botSystem =
+    protected val botSystem by lazy {
         BotSystem.create(
             lateScope,
-            (initialElements.asSequence() + OpModeElement(this)).asIterable()
+            (getInitialElements().asSequence() + OpModeElement(this)).asIterable()
         )
+    }
 
 
     final override suspend fun runOpMode() = coroutineScope {

@@ -28,7 +28,7 @@ interface Element {
      *
      * There can be no circular dependencies.
      */
-    val dependsOn: Set<Class<out Element>>
+    val dependsOn: Set<Class<*>>
 
     /**
      * Initializes. This function should be quick and should not be a long operation, but it can kick off something
@@ -43,15 +43,18 @@ interface Element {
 
     companion object {
 
-        internal fun <T : Element> tryCreateDefault(elementClass: Class<T>): T? =
-            if (Modifier.isAbstract(elementClass.modifiers)) null
-            else try {
-                elementClass.getConstructor().newInstance()
+        internal fun <T> tryCreateDefault(elementClass: Class<T>): Element? = when {
+            elementClass.isInterface ||
+                    !Element::class.java.isAssignableFrom(elementClass) ||
+                    Modifier.isAbstract(elementClass.modifiers) -> null
+            else -> try {
+                elementClass.getConstructor().newInstance() as Element
             } catch (e: NoSuchMethodException) {
                 null
             } catch (e: InvocationTargetException) {
                 throw e.cause!!
             }
+        }
     }
 
     /**
