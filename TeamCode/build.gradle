@@ -21,15 +21,19 @@ repositories {
 }
 
 dependencies {
-    implementation project(':BotSystem')
-    implementation "org.futurerobotics.jargon:jargon-core:0.1.0"
-    implementation "org.futurerobotics.jargon:jargon-pathing:0.1.0"
-    implementation "org.futurerobotics.jargon:jargon-coroutine-integration:0.1.0"
-    implementation "org.futurerobotics.jargon:jargon-state-space:0.1.0"
-
-    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"
     implementation "org.jetbrains.kotlin:kotlin-reflect:$kotlin_version"
     implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:$kotlin_coroutines_version"
+
+    implementation project(':BotSystem')
+
+    implementation "org.futurerobotics.jargon:jargon-core:0.1.1"
+    implementation "org.futurerobotics.jargon:jargon-pathing:0.1.1"
+    implementation "org.futurerobotics.jargon:jargon-coroutine-integration:0.1.1"
+    implementation "org.futurerobotics.jargon:jargon-state-space:0.1.1"
+
+    implementation "org.openftc:rev-extensions-2:1.2"
+
 
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.5.2'
     testImplementation "org.jetbrains.kotlinx:kotlinx-coroutines-test:$kotlin_coroutines_version"
@@ -37,7 +41,6 @@ dependencies {
 
     testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.5.2'
     testImplementation "org.knowm.xchart:xchart:3.6.0"
-
 
     implementation project(':FtcRobotController')
 }

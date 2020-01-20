@@ -1,11 +1,13 @@
 package org.futurerobotics.botsystem
 
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.runBlockingTest
 import org.junit.jupiter.api.Test
 import kotlin.math.roundToInt
 
+@UseExperimental(ExperimentalCoroutinesApi::class)
 class LoopSystemTest {
 
     @Test
@@ -19,10 +21,10 @@ class LoopSystemTest {
 }
 
 
-class TestLoopSystem : SyncedLoop()
+class TestLoopSystem : LoopManager()
 
 
-class Slow : SyncedLooper<Nothing?>(TestLoopSystem::class) {
+class Slow : LoopElement<Nothing?>(TestLoopSystem::class) {
     override suspend fun loop(): Nothing? {
         println("Slow start")
         delay(1000)
@@ -39,14 +41,14 @@ class Slow : SyncedLooper<Nothing?>(TestLoopSystem::class) {
     }
 }
 
-class Printer : SyncedLooper<Nothing?>(TestLoopSystem::class) {
+class Printer : LoopElement<Nothing?>(TestLoopSystem::class) {
     override suspend fun loop(): Nothing? {
         println("   Printer")
         return null
     }
 }
 
-class Medium : SyncedLooper<Int>(TestLoopSystem::class) {
+class Medium : LoopElement<Int>(TestLoopSystem::class) {
     override suspend fun loop(): Int {
         delay(500)
         return Math.random().times(400).roundToInt().also {
@@ -56,11 +58,11 @@ class Medium : SyncedLooper<Int>(TestLoopSystem::class) {
 }
 
 
-class Waiter : SyncedLooper<Int>(TestLoopSystem::class) {
+class Waiter : LoopElement<Int>(TestLoopSystem::class) {
     private val medium: Medium by dependency()
     override suspend fun loop(): Int {
         println("           Awaiting")
-        val value = medium.await()
+        val value = medium.value.await()
         println("           got $value")
         return value
     }

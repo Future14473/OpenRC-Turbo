@@ -1,9 +1,11 @@
 package org.futurerobotics.botsystem
 
 import kotlinx.coroutines.*
+import org.futurerobotics.jargon.util.uncheckedCast
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
-import kotlin.collections.ArrayList
+import kotlin.collections.HashSet
+import kotlin.coroutines.EmptyCoroutineContext
 
 /**
  * A way for organizing subsystems, based off of _dependencies_ and running using coroutines.
@@ -27,21 +29,30 @@ interface BotSystem {
     val elements: Collection<Element>
 
     /**
-     * Get an [Element] via its [identifier class][Element.identifierClass], or throws an exception if
-     * it does not exist.
+     * Gets only ***one*** [Element] via a class, or throws an exception if it does not exist.
      *
-     * @see [elements]
+     * @see tryGet
+     * @see getAll
      */
-    fun <S : Element> get(identifier: Class<S>): S
+    fun <E : Element> get(identifier: Class<E>): E
 
     /**
-     * Attempts to get an [Element] via its [identifier class][Element.identifierClass], or `null`
-     * it does not exist.
+     * Gets only ***one*** [Element] via a class, or `null` if it does not exist.
      *
-     * @see [elements]
+     * @see get
+     * @see getAll
      */
     @Suppress("UNCHECKED_CAST")
-    fun <S : Element> tryGet(identifier: Class<S>): S?
+    fun <E : Element> tryGet(identifier: Class<E>): E?
+
+    /**
+     * Gets all [Element]s that are a subclass fo the given [identifier].
+     *
+     * @see get
+     * @see tryGet
+     */
+    fun <E : Element> getAll(identifier: Class<E>): Collection<E>
+
 
     /**
      * Initializes all elements.
@@ -124,7 +135,7 @@ interface BotSystem {
         @JvmStatic
         fun create(
             scope: CoroutineScope,
-            elements: Collection<Element>
+            elements: Iterable<Element>
         ): BotSystem = BotSystemImpl(scope, elements)
 
         /** @see [create] */
@@ -136,102 +147,111 @@ interface BotSystem {
     }
 }
 
-
 inline fun <reified T : Element> BotSystem.get() = get(T::class.java)
 inline fun <reified T : Element> BotSystem.tryGet() = tryGet(T::class.java)
 
-
 internal class BotSystemImpl(
     override val scope: CoroutineScope,
-    initialElements: Collection<Element>
+    initialElements: Iterable<Element>
 ) : BotSystem {
 
-    init {
-        requireNotNull(scope.coroutineContext[Job]) { "Coroutine scope must have a job." }
-    }
+    private val allElements = mutableSetOf<Element>()
 
-    private val _elements = ArrayList<Element>()
-
-    private val mappedElements = HashMap<Class<out Element>, Element>()
+    private val mappedElements = mutableMapOf<Class<out Element>, MutableCollection<Element>>()
 
     private var isInited = false
 
-
     init {
-        val elementsToAdd = mutableMapOf<Any, Element>()
-        initialElements.forEach {
-            val identifierClass = it.identifierClass
-            if (identifierClass == null) {
-                elementsToAdd[it] = it
-            } else {
-                if (identifierClass in elementsToAdd)
-                    throw IllegalArgumentException("Cannot have two elements with the same identifierClass")
-                elementsToAdd[identifierClass] = it
-            }
+        val identifiers = initialElements.associateWith {
+            val elementClass = it.javaClass
+            sequence<Class<out Element>> {
+                var curClass: Class<*>? = elementClass
+                while (curClass != null && Element::class.java.isAssignableFrom(curClass)) {
+                    yield(curClass.uncheckedCast())
+                    curClass = curClass.superclass
+                }
+                elementClass.interfaces.forEach { intf ->
+                    if (Element::class.java.isAssignableFrom(intf))
+                        yield(intf.uncheckedCast())
+                }
+            }.toHashSet()
         }
-        val considering = hashSetOf<Class<out Element>>()
-
-        fun addElement(element: Element) {
-            val clazz = element.identifierClass
-            if (clazz != null) {
-                require(clazz.isInstance(element)) { "Element identifier is not a super class of itself" }
-                require(clazz !in considering) { "Circular dependency at $clazz" }
+        val elementsToAdd = initialElements.toMutableSet()
+        val util = object {
+            val considering = HashSet<Class<out Element>>() //for detecting circular dependencies
+            fun resolveDependency(clazz: Class<out Element>) {
+                if (clazz in considering) throw IllegalArgumentException("Circular dependency: $clazz")
+                if (clazz in mappedElements) return
                 considering += clazz
-            }
-            element.dependsOn.forEach {
-                if (it in mappedElements || it in elementsToAdd) return@forEach
-                val defaultElement = Element.tryCreateDefault(it)
-                    ?: throw IllegalStateException("Dependency $it does not exit nor have a default creator")
-                addElement(defaultElement)
-            }
-            if (clazz != null) {
-                require(clazz.isInstance(element)) { "Element identifier is not a super class of itself" }
+
+                var added = false
+                elementsToAdd.forEach { toAddElement ->
+                    if (clazz in identifiers.getValue(toAddElement)) {
+                        elementsToAdd -= toAddElement
+                        addElement(toAddElement)
+                        added = true
+                    }
+                }
+                if (!added) {
+                    val defaultElement = Element.tryCreateDefault(clazz)
+                        ?: throw IllegalArgumentException("Cannot create default for element dependency $clazz")
+                    addElement(defaultElement)
+                }
                 considering -= clazz
-                mappedElements[clazz] = element
             }
-            _elements += element
+
+
+            fun addElement(element: Element) {
+                element.dependsOn.forEach {
+                    resolveDependency(it)
+                }
+                identifiers.getValue(element).forEach {
+                    mappedElements
+                        .getOrPut(it) { mutableSetOf() } += element
+                }
+                allElements += element
+            }
         }
 
-        fun <T> MutableIterable<T>.removeFirst(): T =
-            iterator().run { next().also { remove() } }
+        fun <T> MutableIterable<T>.removeFirst(): T = iterator().run { next().also { remove() } }
+
         while (elementsToAdd.isNotEmpty()) {
-            addElement(elementsToAdd.values.removeFirst())
+            util.addElement(elementsToAdd.removeFirst())
         }
     }
 
-    override val elements: Collection<Element> = Collections.unmodifiableCollection(_elements)
+    override val elements: Collection<Element> = Collections.unmodifiableCollection(allElements)
 
-    override fun <S : Element> get(identifier: Class<S>): S =
+    override fun <E : Element> get(identifier: Class<E>): E =
         tryGet(identifier) ?: error("Element with identifier $identifier does not exist.")
 
-    @Suppress("UNCHECKED_CAST")
-    override fun <S : Element> tryGet(identifier: Class<S>): S? = mappedElements[identifier] as S?
+    override fun <E : Element> tryGet(identifier: Class<E>): E? =
+        mappedElements[identifier]!!.firstOrNull().uncheckedCast()
+
+    override fun <E : Element> getAll(identifier: Class<E>): Collection<E> {
+        @Suppress("UNCHECKED_CAST")
+        return mappedElements.getOrElse(identifier) { emptyList<E>() } as Collection<E>
+    }
 
     override suspend fun init(usingScope: Boolean) {
         if (isInited) throw IllegalStateException("Already initialized!")
         isInited = true
-        if (usingScope) {
-            scope.launch { doInit() }.join()
-        } else {
-            doInit()
-        }
-    }
-
-    private suspend fun doInit() = coroutineScope {
-        val clsJobs = ConcurrentHashMap<Class<out Element>, Job>()
-        val allJobs = elements.map { el ->
-            val cls = el.identifierClass
-            launch(start = CoroutineStart.LAZY) {
-                el.dependsOn.map { clsJobs[it]!! }.joinAll()
-                el.init(this@BotSystemImpl)
-            }.also {
-                if (cls != null) {
-                    clsJobs[cls] = it
+        val context = if (usingScope) scope.coroutineContext else EmptyCoroutineContext
+        withContext(context) {
+            val allJobs = ConcurrentHashMap<Element, Job>()
+            elements.associateWithTo(allJobs) { el ->
+                launch(start = CoroutineStart.LAZY) {
+                    el.dependsOn.forEach { dep ->
+                        mappedElements[dep]!!.forEach { el ->
+                            allJobs[el]!!.join()
+                        }
+                    }
+                    el.init(this@BotSystemImpl)
                 }
             }
-        }
-        allJobs.forEach {
-            it.start()
+            allJobs.values.forEach {
+                it.start()
+            }
         }
     }
 
@@ -248,7 +268,6 @@ internal class BotSystemImpl(
     override suspend fun waitForStart() {
         startedJob.join()
     }
-
 
     override fun stop() {
         if (!isInited) return

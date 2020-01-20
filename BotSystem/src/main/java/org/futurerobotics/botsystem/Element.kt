@@ -6,40 +6,27 @@ import java.lang.reflect.Modifier
 
 /**
  * An element in a [BotSystem]. It is basically a thing that can be added to a [BotSystem], and later retrieved
- * using [BotSystem.get]. It is identified by a [identifierClass] which is _usually_ the class of the element
- * itself. There can only be one element for one given [identifierClass].
+ * using [BotSystem.get]. It can be identified through any class or interface that that element implements/extends,
+ * usually the specific element itself.
  *
  * An element may also retrieve other elements through the [BotSystem] to interact with them during [init].
  * Related, each may also [dependsOn] other elements; if something that something depends on does not exist, a default
  * will try to be made or else an exception will be thrown. In this way by simply depending on another element that
  * other element will be added, and the element is guaranteed to exist during [init].
  *
- * Defaults can either be made through:
- * - _a class's_ static method with signature exactly `static T createDefault()` where `T` is the same or subclass of
- *   the current class, and any access modifier.
- * - A public no parameters constructor.
+ * A useful base implementation of [Element] with nice features is available in [BaseElement]
  *
- * I would use companion objects instead of classes but we want to make this more java-friendly.
  */
 interface Element {
 
     /**
-     * The class used to identify this [Element].
+     * A list of elements that this depends on, identified by class. These can be any classes or interfaces
+     * that extend [Element].
      *
-     * This is what is used to identify dependencies in [dependsOn].
-     */
-    @JvmDefault
-    val identifierClass: Class<out Element>?
-        get() = this::class.java
-
-    /**
-     * A list of elements that this depends on, identified through their [identifierClass]. These will be guaranteed
-     * to exist when [init] is called.
+     * If a dependency does not exist, a default will try to be made, else an exception will
+     * be thrown on [BotSystem] init. If A depends on B, B will have [init] called before A.
      *
      * There can be no circular dependencies.
-     *
-     * If a dependency does not exist, a default will try to be made. see [Element] doc. If A depends on B, B will
-     * have [init] called before A.
      */
     val dependsOn: Set<Class<out Element>>
 

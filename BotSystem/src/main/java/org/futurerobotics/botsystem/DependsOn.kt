@@ -15,6 +15,4 @@ class DependsOn private constructor(override val dependsOn: Set<Class<out Elemen
 
     override fun init(botSystem: BotSystem) {
     }
-
-    override val identifierClass: Class<out Element>? get() = null
 }

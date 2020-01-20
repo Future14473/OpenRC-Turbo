@@ -1,4 +1,4 @@
-package org.firstinspires.ftc.teamcode.bot
+package org.firstinspires.ftc.teamcode.hardware
 
 import com.qualcomm.hardware.bosch.BNO055IMU
 import com.qualcomm.robotcore.hardware.DcMotorSimple
@@ -6,6 +6,7 @@ import com.qualcomm.robotcore.hardware.HardwareMap
 import org.futurerobotics.botsystem.BaseElement
 import org.futurerobotics.botsystem.Property
 import org.futurerobotics.botsystem.ftc.OpModeElement
+import org.openftc.revextensions2.ExpansionHubEx
 
 private const val imuName = "imu"
 
@@ -35,12 +36,12 @@ private val intakeConfigs = arrayOf(
 class Hardware : BaseElement() {
 
     private inline fun <R> hardwareMap(crossinline getter: HardwareMap.() -> R): Property<R> =
-        getting(OpModeElement::class) { opMode.hardwareMap.getter() }
+        dependency(OpModeElement::class) { opMode.hardwareMap.getter() }
 
     private fun <T : Any> Array<out HardwareMapConfig<T>>.getAllOrNull() =
         hardwareMap { tryGetAll(asList()) }
 
-    val hardwareMap: HardwareMap by getting(OpModeElement::class) { opMode.hardwareMap }
+    val hardwareMap: HardwareMap by dependency(OpModeElement::class) { opMode.hardwareMap }
 
     val wheelMotors by wheelConfigs.getAllOrNull()
 
@@ -48,5 +49,7 @@ class Hardware : BaseElement() {
 
     val intakeMotors by intakeConfigs.getAllOrNull()
 
-    val imu by hardwareMap { tryGet(BNO055IMU::class.java, imuName) }
+    val gyro by hardwareMap { tryGet(BNO055IMU::class.java, imuName)?.let { IMUGyro(it, true) } }
+
+    val hubs by hardwareMap { getAll(ExpansionHubEx::class.java).takeIf { it.size ==2 } }
 }

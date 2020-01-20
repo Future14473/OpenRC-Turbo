@@ -1,11 +1,10 @@
 package org.futurerobotics.botsystem.ftc
 
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import org.futurerobotics.botsystem.BotSystem
 import org.futurerobotics.botsystem.Element
-import kotlin.collections.component1
-import kotlin.collections.component2
 import kotlin.coroutines.CoroutineContext
 import kotlin.coroutines.EmptyCoroutineContext
 
@@ -14,7 +13,7 @@ import kotlin.coroutines.EmptyCoroutineContext
  *
  * It will call [BotSystem.init] on init, and [BotSystem.start] on start.
  *
- * - [OpModeElement] will be added to the given elements that contains this op mode.
+ * [OpModeElement] will be added to the given elements.
  *
  * One can also override the [additionalRun] function to run additional actions, and use like [CoroutineOpMode].
  *
@@ -25,22 +24,24 @@ abstract class BotSystemsOpMode(
     coroutineContext: CoroutineContext = EmptyCoroutineContext
 ) : CoroutineOpMode(coroutineContext) {
 
-    constructor(vararg initialElements: Element) : this(initialElements.asList())
+    @JvmOverloads
+    constructor(vararg initialElements: Element, context: CoroutineContext = EmptyCoroutineContext) :
+            this(initialElements.asList(), context)
 
-    private val elements = (initialElements.asSequence() + OpModeElement(this))
-        .groupBy { it.identifierClass }
-        .entries.map { (cls, list) ->
-        if (cls != null)
-            require(list.size == 1) { "Cannot have two elements with the same identifier" }
-        list.first()
+    private val lateScope = object : CoroutineScope {
+        override lateinit var coroutineContext: CoroutineContext
     }
 
-    protected lateinit var botSystem: BotSystem
-        private set
+    @Suppress("LeakingThis")
+    protected val botSystem =
+        BotSystem.create(
+            lateScope,
+            (initialElements.asSequence() + OpModeElement(this)).asIterable()
+        )
 
 
     final override suspend fun runOpMode() = coroutineScope {
-        botSystem = BotSystem.create(this, elements)
+        lateScope.coroutineContext = coroutineContext
         botSystem.init()
         launch {
             additionalRun()
@@ -49,6 +50,9 @@ abstract class BotSystemsOpMode(
         botSystem.start()
     }
 
+    /**
+     * Launched in a separate coroutine on start. Use to run more stuff if you want for testing.
+     */
     protected open suspend fun additionalRun() {
     }
 }

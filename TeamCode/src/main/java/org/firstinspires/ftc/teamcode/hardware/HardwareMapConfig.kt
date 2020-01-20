@@ -1,9 +1,8 @@
-package org.firstinspires.ftc.teamcode.bot
+package org.firstinspires.ftc.teamcode.hardware
 
 import com.qualcomm.robotcore.hardware.DcMotorEx
 import com.qualcomm.robotcore.hardware.DcMotorSimple
 import com.qualcomm.robotcore.hardware.HardwareMap
-import org.futurerobotics.jargon.ftcbridge.FtcMotor
 
 /**
  * Something which can be extracted from a [HardwareMap].

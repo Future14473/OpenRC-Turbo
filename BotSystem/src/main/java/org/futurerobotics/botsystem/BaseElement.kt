@@ -8,22 +8,21 @@ import kotlin.reflect.KProperty
 /**
  * Implementation of [Element] with utilities.
  *
- *
  * One can declare dependencies _during construction_ using:
  * - [dependsOn] function, during construction
- * - [dependency] or [getting] functions, which return [Property]s that will be initialized later,
+ * - [dependency] functions, which return [Property]s that will be initialized later.
  *
  * One can call [onInit] to call functions to run upon initialization.
  *
- * [botSystem] will also be initialized upon init.
+ * The [botSystem] property will also be initialized upon init.
  *
- * If one wants more initialization functionality, it must override [init] _without_ parameter.
+ * If one wants more initialization functionality, it can override [init] _without_ parameter or
+ * use [onInit].
  */
 abstract class BaseElement : Element {
 
     private var delegates: MutableList<BotSystemGettingDelegate<*>>? = mutableListOf()
-    private val _dependsOn =
-        HashSet<Class<out Element>>()
+    private val _dependsOn = HashSet<Class<out Element>>()
     final override val dependsOn: Set<Class<out Element>> =
         Collections.unmodifiableSet(_dependsOn)
     /**
@@ -42,6 +41,9 @@ abstract class BaseElement : Element {
         init()
     }
 
+    /**
+     * performs any additional initialization, if necessary.
+     */
     protected open fun init() {}
 
 
@@ -87,27 +89,27 @@ abstract class BaseElement : Element {
      * Adds the given elementClass as a dependency, and returns a [Property] where the will be filled with the actual
      * dependency plus [getValue] on init.
      */
-    protected inline fun <T : Element, R> getting(clazz: Class<T>, crossinline getValue: T.() -> R): Property<R> {
+    protected inline fun <T : Element, R> dependency(clazz: Class<T>, crossinline getValue: T.() -> R): Property<R> {
         dependsOn(clazz)
         return onInit { get(clazz).getValue() }
     }
 
-    /** [getting] for Kotlin */
+    /** [dependency] for Kotlin */
     @JvmSynthetic
-    protected fun <T : Element, R> getting(clazz: KClass<T>, getValue: T.() -> R): Property<R> =
-        getting(clazz.java, getValue)
+    protected fun <T : Element, R> dependency(clazz: KClass<T>, getValue: T.() -> R): Property<R> =
+        dependency(clazz.java, getValue)
 
-    /** [getting] for Kotlin */
+    /** [dependency] for Kotlin */
     @UseExperimental(ExperimentalTypeInference::class)
     @JvmSynthetic
-    protected inline fun <reified T : Element, R> getting(@BuilderInference crossinline getValue: T.() -> R): Property<R> =
-        getting(T::class.java, getValue)
+    protected inline fun <reified T : Element, R> dependency(@BuilderInference crossinline getValue: T.() -> R): Property<R> =
+        dependency(T::class.java, getValue)
 
 
     /**
-     * Gets a [Property] which will have the value given by the [getValue] on init, with the [getting] passed.
+     * Gets a [Property] which will have the value given by the [getValue] on init, with the [dependency] passed.
      *
-     * These will run with properties gotten by [getting] in the same order they were declared.
+     * These will run with properties gotten by [dependency] in the same order they were declared.
      */
     protected fun <R> onInit(getValue: BotSystem.() -> R): Property<R> =
         BotSystemGettingDelegate(getValue).also {
@@ -140,11 +142,19 @@ abstract class BaseElement : Element {
  *
  * Can also be used as a kotlin property delegate.
  */
-interface Property<T> {
+interface Property<out T> {
 
     val value: T
+
+    @JvmDefault
+    fun get() = value
 
     @JvmSynthetic
     @JvmDefault
     operator fun getValue(thisRef: Any?, property: KProperty<*>): T = value
+}
+
+inline fun <T, R> Property<T>.map(crossinline transform: (T) -> R): Property<R> = object : Property<R> {
+    override val value: R
+        get() = transform(this@map.value)
 }

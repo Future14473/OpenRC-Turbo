@@ -5,6 +5,7 @@ import com.qualcomm.robotcore.util.RobotLog
 import org.futurerobotics.botsystem.BaseElement
 import org.futurerobotics.botsystem.ftc.BotSystemsOpMode
 import org.futurerobotics.botsystem.ftc.OpModeElement
+import org.futurerobotics.botsystem.get
 
 @TeleOp
 class TestOpMode : BotSystemsOpMode(Something()) {
@@ -16,7 +17,7 @@ class TestOpMode : BotSystemsOpMode(Something()) {
 
 private class Something : BaseElement() {
 
-    private val opMode by getting(OpModeElement::class) { opMode }
+    private val opMode by dependency(OpModeElement::class) { opMode }
     private val hardwareMap by lazy { opMode.hardwareMap!! }
 
     fun hey() {

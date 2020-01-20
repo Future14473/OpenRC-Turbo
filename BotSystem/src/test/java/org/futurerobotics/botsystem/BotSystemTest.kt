@@ -34,7 +34,7 @@ class BotSystemTest {
 }
 
 private class Dependency1 : BaseElement() {
-    private val aThing by getting(Dependency2::class) { thing }
+    private val aThing by dependency(Dependency2::class) { thing }
 
     override fun init() {
         println(aThing)
