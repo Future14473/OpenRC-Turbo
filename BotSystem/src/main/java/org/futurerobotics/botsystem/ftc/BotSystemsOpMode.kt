@@ -27,13 +27,13 @@ abstract class BotSystemsOpMode(
         override lateinit var coroutineContext: CoroutineContext
     }
 
-    protected abstract fun getInitialElements(): Collection<Element>
+    protected abstract fun getElements(): Collection<Element>
 
     @Suppress("LeakingThis")
     protected val botSystem by lazy {
         BotSystem.create(
             lateScope,
-            (getInitialElements().asSequence() + OpModeElement(this)).asIterable()
+            (getElements().asSequence() + OpModeElement(this)).asIterable()
         )
     }
 

@@ -1,116 +1,76 @@
 package org.firstinspires.ftc.teamcode.system
 
-import com.qualcomm.robotcore.hardware.Gamepad
+import org.firstinspires.ftc.robotcore.external.Telemetry
 import org.firstinspires.ftc.teamcode.ROBOT_LOOP_PERIOD
-import org.firstinspires.ftc.teamcode.hardware.*
-import org.futurerobotics.botsystem.*
+import org.firstinspires.ftc.teamcode.hardware.BulkData
+import org.firstinspires.ftc.teamcode.hardware.Hardware
+import org.firstinspires.ftc.teamcode.hardware.MultipleBulkData
+import org.futurerobotics.botsystem.LoopElement
+import org.futurerobotics.botsystem.LoopManager
 import org.futurerobotics.botsystem.ftc.OpModeElement
-import org.futurerobotics.jargon.linalg.Vec
-import org.futurerobotics.jargon.linalg.mapToVec
+import org.futurerobotics.botsystem.tryGet
 
-class ControlLoop : LoopManager(ROBOT_LOOP_PERIOD)
-class ButtonsElement : BaseElement() {
-    private val opMode by dependency(OpModeElement::class) { opMode }
-    private val controlLoop by dependency<ControlLoop>()
-
-    val gamepad1Buttons by buttonsLoop(opMode.gamepad1)
-
-    val gamepad2Buttons by buttonsLoop(opMode.gamepad2)
-
-    private fun buttonsLoop(gamepad: Gamepad): Property<LoopValue<Buttons>> {
-        val buttons = Buttons(gamepad)
-        return onInit {
-            controlLoop.addElement {
-                buttons.updateNow()
-                buttons
-            }
-        }
-    }
-}
-
-@Suppress("DuplicatedCode")
-class Measurements : BaseElement() {
-
-    init {
-        dependsOn<Hardware>()
-    }
-
-    private val controlLoop by dependency<ControlLoop>()
-
-    lateinit var bulkData: LoopValue<BulkData>
-        private set
-
-    private var _angle: LoopValue<Double>? = null
-    val heading: LoopValue<Double> get() = _angle ?: error("IMU NOT FOUND")
-
-    private var _angularVelocity: LoopValue<Double>? = null
-    val angularVelocity: LoopValue<Double> get() = _angularVelocity ?: error("IMU NOT FOUND")
-
-
-    private var _wheelPositions: LoopValue<Vec>? = null
-    val wheelPositions: LoopValue<Vec> get() = _wheelPositions ?: error("WHEELS NOT FOUND")
-
-    private var _wheelVelocities: LoopValue<Vec>? = null
-    val wheelVelocities: LoopValue<Vec> get() = _wheelPositions ?: error("WHEELS NOT FOUND")
-
-    private var _liftPositions: LoopValue<Vec>? = null
-    val listPositions: LoopValue<Vec> get() = _liftPositions ?: error("LIFTS NOT FOUND")
-
-    private var _liftVelocities: LoopValue<Vec>? = null
-    val liftVelocities: LoopValue<Vec> get() = _liftPositions ?: error("LIFTS NOT FOUND")
-
+class ControlLoop : LoopManager(ROBOT_LOOP_PERIOD) {
+    private var telemetry: Telemetry? = null
 
     override fun init() {
-        val hardware: Hardware = botSystem.get()
-        val hubs = hardware.hubs ?: throw IllegalStateException(
-            """
-                |Expansion Hubs not found! Oh no!
-                |
-                |Lots of things rely on this!
-                |
-                |I don't know try restarting the app!
-                |
-                |I'm going to regret this error message later!
-                """.trimMargin()
-        )
-        controlLoop.apply {
-            bulkData = controlLoop.addElement {
-                MultipleBulkData(hubs.map { it.bulkInputData })
-            }
-            val imu = hardware.gyro
-            if (imu != null) {
-                _angle = addElement {
-                    imu.angle
-                }
-                _angularVelocity = addElement {
-                    imu.angularVelocity
-                }
-            }
-            val wheels = hardware.wheelMotors
-            if (wheels != null) {
-                _wheelPositions = addElement {
-                    val bulk = bulkData.currentValue.await()
-                    wheels.mapToVec { bulk.getMotorCurrentAngle(it) }
-                }
-                _wheelVelocities = addElement {
-                    val bulk = bulkData.currentValue.await()
-                    wheels.mapToVec { bulk.getMotorAngularVelocity(it) }
-                }
-            }
+        telemetry = botSystem.tryGet<OpModeElement>()?.opMode?.telemetry
+    }
 
-            val lifts = hardware.liftsMotors
-            if (lifts != null) {
-                _liftPositions = addElement {
-                    val bulk = bulkData.currentValue.await()
-                    lifts.mapToVec { bulk.getMotorCurrentAngle(it) }
-                }
-                _liftVelocities = addElement {
-                    val bulk = bulkData.currentValue.await()
-                    lifts.mapToVec { bulk.getMotorAngularVelocity(it) }
-                }
-            }
-        }
+    override fun afterLoop() {
+        telemetry?.update()
     }
 }
 
+class ButtonsElement : LoopElement() {
+
+    init {
+        loopOn<ControlLoop>()
+    }
+
+    val buttons1 by dependency(OpModeElement::class) { Buttons(opMode.gamepad1) }
+    val buttons2 by dependency(OpModeElement::class) { Buttons(opMode.gamepad2) }
+
+    override fun loop() {
+        buttons1.update()
+        buttons2.update()
+    }
+}
+
+/**
+ * An element which gets a [value] every loop. And loops on [ControlLoop].
+ */
+abstract class LoopValueElement<T : Any> : LoopElement() {
+
+    init {
+        loopOn<ControlLoop>()
+    }
+
+    @Volatile
+    lateinit var value: T
+        private set
+
+    override fun loop() {
+        value = loopValue()
+    }
+
+    //cannot name getValue... aww
+    protected abstract fun loopValue(): T
+}
+
+
+class TheBulkData : LoopValueElement<BulkData>() {
+
+    private val hubs by dependency(Hardware::class) {
+        hubs ?: error(
+            """
+            |THE EXPANSION HUBS AIN'T HAVE BEEN FOUND 
+            |
+            |I'm going to regret this error message
+            """.trimMargin()
+        )
+    }
+
+    override fun loopValue(): BulkData = MultipleBulkData(hubs)
+}
 

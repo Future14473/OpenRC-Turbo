@@ -41,12 +41,12 @@ suspend fun <T> runInExecutorAndWait(executor: ExecutorService, callable: () -> 
             }
         }
     } catch (e: CancellationException) {
+        //may throw twice but that's fine
         if (!canStart.compareAndSet(true, false))
             try {
                 withContext(NonCancellable) {
                     completed.await()
                 }
-            } catch (ignored: InterruptedException) {
             } catch (ignored: CancellationException) {
             }
         throw e

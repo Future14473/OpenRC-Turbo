@@ -22,7 +22,7 @@ class Buttons(private val gamepad: Gamepad) {
     val back = Button()
 
     @Suppress("DuplicatedCode")
-    fun updateNow() {
+    fun update() {
         a update gamepad.a
         b update gamepad.b
         x update gamepad.x
@@ -49,7 +49,7 @@ class Buttons(private val gamepad: Gamepad) {
 
         val isPressed get() = currentState
         val isReleased get() = !currentState
-        val isDownClicked get() = currentState && !pastState
+        val isClicked get() = currentState && !pastState
         val isUpClicked get() = !currentState && pastState
 
         internal infix fun update(newState: Boolean) {

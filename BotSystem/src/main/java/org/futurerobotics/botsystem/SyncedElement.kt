@@ -81,7 +81,7 @@ abstract class SyncedElement : BaseElement() {
  */
 abstract class CoroutineLoopElement : SyncedElement() {
 
-    override suspend fun SyncScope.run() {
+    final override suspend fun SyncScope.run() {
         while (coroutineContext.isActive) {
             awaitAllDependencies()
             loopSuspend()
@@ -113,7 +113,7 @@ abstract class CoroutineLoopElement : SyncedElement() {
  */
 abstract class LoopElement : CoroutineLoopElement() {
 
-   final override suspend fun loopSuspend() = loop()
+    final override suspend fun loopSuspend() = loop()
 
     protected abstract fun loop()
 }
@@ -127,9 +127,11 @@ interface SyncScope {
      * Awaits all [SyncedElement] or [LoopElement] that are a subclass of the
      * given [clazz] before continuing.
      *
-     * For example, a dependency.
+     * Also returns up to _one_ of that element.
+     *
+     * This may not do anything if there is no [LoopElement] that is on the [clazz].
      */
-    suspend fun await(clazz: Class<*>)
+    suspend fun <T> await(clazz: Class<T>): T?
 
     /**
      * Awaits all [SyncedElement]s or [LoopElement]s that are added to the same loop

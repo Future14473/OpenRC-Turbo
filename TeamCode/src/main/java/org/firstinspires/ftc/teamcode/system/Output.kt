@@ -1,25 +1,30 @@
 package org.firstinspires.ftc.teamcode.system
 
 import kotlinx.coroutines.isActive
-import kotlinx.coroutines.launch
 import org.firstinspires.ftc.teamcode.hardware.Hardware
 import org.firstinspires.ftc.teamcode.hardware.SetValue
-import org.futurerobotics.botsystem.BaseElement
-import org.futurerobotics.botsystem.LoopManager
-import org.futurerobotics.botsystem.LoopValue
-import org.futurerobotics.botsystem.SettableLoopValue
-import org.futurerobotics.jargon.linalg.Vec
-import org.futurerobotics.jargon.linalg.zeroVec
+import org.futurerobotics.botsystem.SyncScope
+import org.futurerobotics.botsystem.SyncedElement
+import org.futurerobotics.jargon.math.convert.*
 import kotlin.coroutines.coroutineContext
 
+//TODO: figure out true values
+const val BLOCK_HEIGHT = 4 * `in`
+const val MAX_LIFT_HEIGHT = 1.5 * meters
 
-class Output : BaseElement(), LiftTarget {
-    internal val controlLoop by dependency<ControlLoop>()
-    internal val buttons by dependency(ButtonsElement::class) { gamepad2Buttons }
+/**
+ * Output controller. Controlled by player 2
+ */
+class Output : SyncedElement(), LiftTarget {
 
+    init {
+        loopOn<ControlLoop>()
+    }
+
+    internal val buttons by dependency(ButtonsElement::class) { buttons2 }
     internal val claw by dependency(Hardware::class) { claw!! }
     internal val rotater by dependency(Hardware::class) { rotater!! }
-    internal val arms by dependency(Hardware::class) {
+    internal val linkage by dependency(Hardware::class) {
         val linkageServos = linkageServos!!
         object : SetValue {
             override var value: Double = 0.0
@@ -32,53 +37,81 @@ class Output : BaseElement(), LiftTarget {
         }
     }
 
-    internal lateinit var _pos: SettableLoopValue<Vec>
+    @Volatile
+    override var liftHeight: Double = 0.0
 
-    override val pos: LoopValue<Vec> get() = _pos
+    @Volatile
+    override var liftVelocity: Double = 0.0
 
-    override fun start() {
-        _pos = controlLoop.newSettableValue()
-        botSystem.scope.launch {
-            doOutput()
-        }
-    }
+    internal lateinit var sync: SyncScope
+        private set
 
-    private suspend fun doOutput() {
+    override suspend fun SyncScope.run() {
+        sync = this
         var state = OutputState.Ready
         while (coroutineContext.isActive) {
-            state = with(state) { run() }
+            state = with(state) { runState() }
         }
     }
 }
 
-enum class OutputState {
-    Ready {
-        override suspend fun Output.run(): OutputState {
-            val zero = zeroVec(2)
-            _pos.setValue(zero)
-            controlLoop.loopAndWait {
-                _pos.setValue(zero)
-                val buttons = buttons.await()
-                if (buttons.left_bumper.isDownClicked) {
+/**
+ * State machine for hte output
+ */
+private enum class OutputState {
+
+    Ready { //all it does is explode.
+        override suspend fun Output.runState(): OutputState {
+            liftHeight = 0.0
+            liftVelocity = 0.0
+            claw.open()
+            rotater.position = 0.0
+            loop {
+                if (buttons.left_bumper.isClicked) {
                     claw.close()
-                    LoopManager.stopSelf()
+                    delay(200)
+                    return In
                 }
             }
-            return In
         }
     },
-    In {
-        override suspend fun Output.run(): OutputState {
-            TODO("not implemented")
+    In { //onlu input. Cannot rotate, can only rotate when extended.
+        override suspend fun Output.runState(): OutputState {
+            rotater.position = 0.0
+            loop {
+                if (buttons.dpad_up.isClicked) {
+                    liftHeight += BLOCK_HEIGHT
+                }
+                if(buttons.dpad_down.isClicked){
+                    liftHeight -= BLOCK_HEIGHT
+                }
+                liftHeight = liftHeight.coerceIn(0.0,MAX_LIFT_HEIGHT)
+
+            }
+        }
+    }
+    ;
+
+    /**
+     * Runs the [block], looping, synchronizing.
+     */
+    protected suspend inline fun Output.loop(block: () -> Unit): Nothing {
+        while (true) {
+            block()
+            sync.endLoop()
         }
     }
 
-
-    ;
-
-    fun exit() {
-        LoopManager.stopSelf()
+    /**
+     * Delays current time, while still allowing other elements that may be waiting for this to run.
+     */
+    protected suspend inline fun Output.delay(millis: Int) {
+        val start = System.currentTimeMillis()
+        val end = start + millis
+        loop {
+            if (System.currentTimeMillis() > end) return
+        }
     }
 
-    abstract suspend fun Output.run(): OutputState
+    abstract suspend fun Output.runState(): OutputState
 }

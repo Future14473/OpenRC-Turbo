@@ -1,11 +1,9 @@
 package org.firstinspires.ftc.teamcode.system
 
 import org.firstinspires.ftc.teamcode.hardware.Hardware
-import org.futurerobotics.botsystem.SyncedElement
+import org.firstinspires.ftc.teamcode.hardware.getMotorAngles
 import org.futurerobotics.botsystem.get
 import org.futurerobotics.jargon.control.EncoderGyroLocalizer
-import org.futurerobotics.jargon.linalg.Vec
-import org.futurerobotics.jargon.linalg.times
 import org.futurerobotics.jargon.math.Pose2d
 import org.futurerobotics.jargon.math.Vector2d
 import org.futurerobotics.jargon.model.*
@@ -26,42 +24,19 @@ private val localizerModel = run {
 }
 
 
-class PositionLocalizer : SyncedElement<Pose2d>() {
+class OdometryLocalizer : LoopValueElement<Pose2d>() {
+    private val theBulkData: TheBulkData by dependency()
+    private val hardware: Hardware by dependency()
 
-    init {
-        dependsOn<Hardware>()
-        loopOn<ControlLoop>()
-    }
-
-    private val measurements by dependency<Measurements>()
-
-    private val localizer = EncoderGyroLocalizer(
-        localizerModel, useAbsoluteHeading = false
-    )
+    private val localizer = EncoderGyroLocalizer(localizerModel, useAbsoluteHeading = false)
 
     override fun init() {
         localizer.resetHeadingMeasurement(botSystem.get<Hardware>().gyro!!.angle)
     }
 
-    override suspend fun loop(): Pose2d {
-        return localizer.update(measurements.wheelPositions.await(), measurements.heading.await())
-    }
-}
-
-
-class VelocityObserver : SyncedElement<Vec>() {
-
-    init {
-        dependsOn<Hardware>()
-        loopOn<ControlLoop>()
-    }
-
-    private val measurements by dependency<Measurements>()
-
-
-    override suspend fun loop(): Vec {
-        val velocityVec = measurements.wheelVelocities.await()
-            .append(measurements.angularVelocity.await())
-        return localizerModel.botVelFromMotorAndGyroVel * velocityVec
+    override fun loopValue(): Pose2d {
+        val wheelPositions = theBulkData.value.getMotorAngles(hardware.odometryMotors!!)
+        val angle = hardware.gyro!!.angle
+        return localizer.update(wheelPositions, angle)
     }
 }

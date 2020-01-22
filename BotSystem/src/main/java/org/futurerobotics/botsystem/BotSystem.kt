@@ -17,13 +17,13 @@ interface BotSystem {
     /**
      * The coroutine scope of this bot system, in which all elements are launched from.
      */
-    val scope: CoroutineScope
+    val coroutineScope: CoroutineScope
     /**
      * The job of this bot system, in which all running element processes are a child of.
      */
     @JvmDefault
     val job: Job
-        get() = scope.coroutineContext[Job]!!
+        get() = coroutineScope.coroutineContext[Job]!!
 
     /** A collection of all elements. */
     val elements: Collection<Element>
@@ -150,8 +150,9 @@ interface BotSystem {
 inline fun <reified T> BotSystem.get() = get(T::class.java)
 inline fun <reified T> BotSystem.tryGet() = tryGet(T::class.java)
 
+//Optimize? necessary? probably not.
 internal class BotSystemImpl(
-    override val scope: CoroutineScope,
+    override val coroutineScope: CoroutineScope,
     initialElements: Iterable<Element>
 ) : BotSystem {
 
@@ -177,7 +178,7 @@ internal class BotSystemImpl(
 
                 var added = false
                 elementsToAdd.forEach { toAddElement ->
-                    if (clazz in identifiedBy.getValue(toAddElement)) {
+                    if (clazz.isInstance(toAddElement)) {
                         elementsToAdd -= toAddElement
                         addElement(toAddElement)
                         added = true
@@ -196,7 +197,6 @@ internal class BotSystemImpl(
                 element.dependsOn.forEach {
                     resolveDependency(it)
                 }
-                addToIdentifiedBy(element)
                 identifiedBy.getValue(element).forEach {
                     mappedElements.getOrPut(it) { mutableSetOf() } += element
                 }
@@ -247,7 +247,7 @@ internal class BotSystemImpl(
     override suspend fun init(usingScope: Boolean) {
         if (isInited) throw IllegalStateException("Already initialized!")
         isInited = true
-        val context = if (usingScope) scope.coroutineContext else EmptyCoroutineContext
+        val context = if (usingScope) coroutineScope.coroutineContext else EmptyCoroutineContext
         withContext(context) {
             val allJobs = ConcurrentHashMap<Element, Job>()
             elements.associateWithTo(allJobs) { el ->
@@ -282,7 +282,7 @@ internal class BotSystemImpl(
 
     override fun stop() {
         if (!isInited) return
-        scope.cancel()
+        coroutineScope.cancel()
     }
 
     override suspend fun awaitTermination() {

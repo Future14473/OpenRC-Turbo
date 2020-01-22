@@ -88,7 +88,7 @@ abstract class CoroutineElement : BaseElement() {
 
 
     final override fun init() {
-        botSystem.scope.launch {
+        botSystem.coroutineScope.launch {
             runElement()
         }
     }

@@ -3,7 +3,7 @@ package org.firstinspires.ftc.teamcode.hardware
 import org.futurerobotics.jargon.hardware.Servo
 import com.qualcomm.robotcore.hardware.Servo as InnerServo
 
-private typealias DoubleRange = ClosedFloatingPointRange<Double>
+typealias DoubleRange = ClosedFloatingPointRange<Double>
 
 private val DoubleRange.size get() = endInclusive - start
 

@@ -3,12 +3,17 @@ package org.firstinspires.ftc.teamcode.tests
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp
 import com.qualcomm.robotcore.util.RobotLog
 import org.futurerobotics.botsystem.BaseElement
+import org.futurerobotics.botsystem.Element
 import org.futurerobotics.botsystem.ftc.BotSystemsOpMode
 import org.futurerobotics.botsystem.ftc.OpModeElement
 import org.futurerobotics.botsystem.get
 
 @TeleOp
-class TestOpMode : BotSystemsOpMode(Something()) {
+class TestOpMode : BotSystemsOpMode() {
+
+    override fun getElements(): Collection<Element> {
+        return listOf(Something())
+    }
 
     override suspend fun additionalRun() {
         botSystem.get<Something>().hey()

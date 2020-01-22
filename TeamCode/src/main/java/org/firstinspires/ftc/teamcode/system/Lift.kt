@@ -2,23 +2,22 @@ package org.firstinspires.ftc.teamcode.system
 
 import org.firstinspires.ftc.teamcode.ROBOT_LOOP_PERIOD
 import org.firstinspires.ftc.teamcode.hardware.Hardware
-import org.futurerobotics.botsystem.SyncedElement
-import org.futurerobotics.botsystem.LoopValue
+import org.firstinspires.ftc.teamcode.hardware.getMotorAngle
+import org.firstinspires.ftc.teamcode.hardware.getMotorVelocity
+import org.firstinspires.ftc.teamcode.of
+import org.futurerobotics.botsystem.LoopElement
 import org.futurerobotics.jargon.linalg.*
 import org.futurerobotics.jargon.math.convert.*
 import org.futurerobotics.jargon.model.MotorModel
 import org.futurerobotics.jargon.statespace.*
 import kotlin.math.pow
 
-object of {
-    inline infix fun <T> the(t: T): T = t
-}
 //TODO
 @Suppress("UNREACHABLE_CODE")
 object LiftModel {
 
-    val kAug: Mat
-    val matrices: DiscreteStateSpaceMatrices
+    private val kAug: Mat
+    private val matrices: DiscreteStateSpaceMatrices
 
     init {
         // HEY FUTURE BEN
@@ -63,10 +62,10 @@ object LiftModel {
         matrices = ContinuousStateSpaceMatrices(aAug, bAug, cAug).discretize(ROBOT_LOOP_PERIOD)
     }
 
-    val initialCovariance = zeroMat(3, 3).apply {
+    private val initialCovariance = zeroMat(3, 3).apply {
         this[2, 2] = 4.0
     }
-    val noiseCovariance = NoiseCovariance(
+    private val noiseCovariance = NoiseCovariance(
         zeroMat(3, 3).apply {
             this[0, 0] = 10 * `in` * ROBOT_LOOP_PERIOD
             this[1, 1] = 10 * `in` * ROBOT_LOOP_PERIOD
@@ -110,18 +109,21 @@ object LiftModel {
 }
 
 interface LiftTarget {
-    val pos: LoopValue<Vec>
+    /** meters */
+    val liftHeight: Double
+    /** m/s */
+    val liftVelocity: Double
 }
 
-class LiftController : SyncedElement<Unit>() {
+class LiftController : LoopElement() {
 
     init {
         loopOn<ControlLoop>()
     }
 
-    private val hardware by dependency<Hardware>()
-    private val measurements by dependency<Measurements>()
-    private val target by dependency<LiftTarget>()
+    private val theBulkData: TheBulkData by dependency()
+    private val hardware: Hardware by dependency()
+    private val target: LiftTarget by dependency()
     private val controllers = List(2) { LiftModel.getRunner() }
     override fun init() {
         controllers.forEach {
@@ -129,15 +131,22 @@ class LiftController : SyncedElement<Unit>() {
         }
     }
 
+
     @UseExperimental(ExperimentalStateSpace::class)
-    override suspend fun loop() {
-        val pos = measurements.listPositions.await()
-        val vel = measurements.liftVelocities.await()
-        val target = target.pos.await()
+    override fun loop() {
+        val lifts = hardware.liftsMotors!!
+        val bulkData = theBulkData.value
+        val targetPos = target.liftHeight
+        val targetVel = target.liftVelocity
+        val targetVec = createVec(targetPos, targetVel)
         controllers.forEachIndexed { i, runner ->
+            val motor = lifts[i]
             runner.update(
-                createVec(pos[i], vel[i]),
-                target,
+                createVec(
+                    bulkData.getMotorAngle(motor),
+                    bulkData.getMotorVelocity(motor)
+                ),
+                targetVec,
                 null,
                 0L
             )

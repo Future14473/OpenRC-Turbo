@@ -37,7 +37,7 @@ class Slow : CoroutineLoopElement() {
     }
 
     override fun init() {
-        botSystem.scope.launch {
+        botSystem.coroutineScope.launch {
             delay(8000)
             botSystem.stop()
         }

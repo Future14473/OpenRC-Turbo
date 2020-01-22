@@ -27,10 +27,17 @@ private val liftConfigs = run {
         MotorConfig("LiftRight", DcMotorSimple.Direction.FORWARD, tpr)
     )
 }
-private val intakeConfigs = arrayOf(
-    SimpleMotorConfig("IntakeLeft", DcMotorSimple.Direction.FORWARD),
-    SimpleMotorConfig("IntakeRight", DcMotorSimple.Direction.REVERSE)
-)
+//TODO
+//Cause this is also odometry.
+//This will be fun.
+@Suppress("UNREACHABLE_CODE")
+private val intakeConfigs = run {
+    val tpr = TODO()
+    arrayOf(
+        MotorConfig("IntakeLeft", DcMotorSimple.Direction.FORWARD, tpr),
+        MotorConfig("IntakeRight", DcMotorSimple.Direction.REVERSE, tpr)
+    )
+}
 
 //TODO
 private val linkageConfigs = arrayOf(
@@ -64,6 +71,8 @@ class Hardware : BaseElement() {
     val liftsMotors by liftConfigs.getAllOrNull()
 
     val intakeMotors by intakeConfigs.getAllOrNull()
+
+    val odometryMotors get() = intakeMotors
 
     val gyro by hardwareMap { tryGet(BNO055IMU::class.java, imuName)?.let { IMUGyro(it, true) } }
 

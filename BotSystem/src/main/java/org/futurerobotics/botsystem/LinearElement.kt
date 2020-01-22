@@ -112,7 +112,7 @@ abstract class LinearElement : BaseElement() {
     }
 
     override fun init() {
-        botSystem.scope.launch {
+        botSystem.coroutineScope.launch {
             val executorService = Executors.newSingleThreadExecutor()
             try {
                 runInExecutorAndWait(executorService) {

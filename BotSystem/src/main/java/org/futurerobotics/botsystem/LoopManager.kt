@@ -63,7 +63,7 @@ abstract class LoopManager(
 
     init {
         onInit {
-            scope.launchLoop()
+            coroutineScope.launchLoop()
         }
     }
 
@@ -73,6 +73,7 @@ abstract class LoopManager(
         botSystem.waitForStart()
         elementChannel.close()
         val elements = elementChannel.toList()
+        if (elements.isEmpty()) return@launch
         LoopRunner(elements).run()
     }
 
@@ -146,10 +147,13 @@ abstract class LoopManager(
             @JvmField
             var currentJob = Job()
 
-            override suspend fun await(clazz: Class<*>) {
-                dependantLoopkup[clazz]?.forEach { dependant ->
+            @Suppress("UNCHECKED_CAST")
+            override suspend fun <T> await(clazz: Class<T>): T? {
+                val dependant = dependantLoopkup[clazz] ?: return null
+                dependant.forEach { dependant ->
                     elementsMap[dependant]!!.currentJob.join()
                 }
+                return dependant.firstOrNull() as T?
             }
 
             override suspend fun awaitAllDependencies() {

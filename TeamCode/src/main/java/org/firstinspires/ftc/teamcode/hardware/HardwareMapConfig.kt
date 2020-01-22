@@ -13,7 +13,6 @@ interface HardwareMapConfig<T> {
     fun tryGetFrom(map: HardwareMap): T?
 }
 
-
 data class SimpleMotorConfig(
     val name: String,
     val direction: DcMotorSimple.Direction
