@@ -82,7 +82,7 @@ abstract class CoroutineOpMode(coroutineContext: CoroutineContext = EmptyCorouti
         val isActive = !isStopRequested && isStarted
         if (isActive)
             withContext(NonCancellable) {
-                idle()
+                yield()
             }
         return isActive
     }

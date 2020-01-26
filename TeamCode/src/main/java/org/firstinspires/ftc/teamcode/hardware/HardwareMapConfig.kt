@@ -3,7 +3,8 @@ package org.firstinspires.ftc.teamcode.hardware
 import com.qualcomm.robotcore.hardware.DcMotorEx
 import com.qualcomm.robotcore.hardware.DcMotorSimple
 import com.qualcomm.robotcore.hardware.HardwareMap
-import com.qualcomm.robotcore.hardware.Servo
+import com.qualcomm.robotcore.hardware.ServoImplEx
+import org.futurerobotics.jargon.hardware.Servo as Servo1
 
 /**
  * Something which can be extracted from a [HardwareMap].
@@ -40,10 +41,10 @@ data class RangedServoConfig(
     val name: String,
     val servoRange: ClosedFloatingPointRange<Double>,
     val angleRange: ClosedFloatingPointRange<Double>
-) : HardwareMapConfig<FtcServo> {
+) : HardwareMapConfig<Servo1> {
 
-    override fun tryGetFrom(map: HardwareMap): FtcServo? {
-        val servo = map.tryGet(Servo::class.java, name) ?: return null
+    override fun tryGetFrom(map: HardwareMap): Servo1? {
+        val servo = map.tryGet(ServoImplEx::class.java, name) ?: return null
         return FtcServo(servo, servoRange, angleRange)
     }
 }
@@ -52,11 +53,11 @@ data class RangedServoConfig(
 data class ServoDoorConfig(
     val name: String,
     val closeOpenRange: ClosedFloatingPointRange<Double>,
-    val initialIsOpen: Boolean
+    val initialIsOpen: Boolean?
 ) : HardwareMapConfig<ServoDoor> {
 
     override fun tryGetFrom(map: HardwareMap): ServoDoor? {
-        val servo = map.tryGet(Servo::class.java, name) ?: return null
+        val servo = map.tryGet(ServoImplEx::class.java, name) ?: return null
         return ServoDoor(servo, closeOpenRange, initialIsOpen)
     }
 }

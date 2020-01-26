@@ -14,7 +14,7 @@ dependencies {
     api "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
     api "org.jetbrains.kotlinx:kotlinx-coroutines-core:$kotlin_coroutines_version"
 
-    implementation "org.futurerobotics.jargon:jargon-core:0.1.1"
+    implementation "org.futurerobotics.jargon:jargon-core:0.2.0-SNAPSHOT"
     compileOnly "org.openftc:robotcore-stock:5.3"
     compileOnly "org.openftc:hardware-stock:5.3"
 
@@ -44,8 +44,8 @@ android {
     }
 
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_1_10
-        targetCompatibility JavaVersion.VERSION_1_10
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
     }
 
     buildTypes {

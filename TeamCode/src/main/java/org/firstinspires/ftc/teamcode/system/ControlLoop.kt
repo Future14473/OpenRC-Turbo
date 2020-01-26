@@ -1,16 +1,24 @@
 package org.firstinspires.ftc.teamcode.system
 
 import org.firstinspires.ftc.robotcore.external.Telemetry
-import org.firstinspires.ftc.teamcode.ROBOT_LOOP_PERIOD
 import org.firstinspires.ftc.teamcode.hardware.BulkData
 import org.firstinspires.ftc.teamcode.hardware.Hardware
 import org.firstinspires.ftc.teamcode.hardware.MultipleBulkData
 import org.futurerobotics.botsystem.LoopElement
 import org.futurerobotics.botsystem.LoopManager
 import org.futurerobotics.botsystem.ftc.OpModeElement
-import org.futurerobotics.botsystem.tryGet
 
-class ControlLoop : LoopManager(ROBOT_LOOP_PERIOD) {
+
+class ControlLoop
+@JvmOverloads constructor(
+    private val updateTelemetry: Boolean = true
+) : LoopManager(minPeriod = PERIOD) {
+
+    companion object {
+        const val FREQUENCY = 15.0
+        const val PERIOD = 1 / FREQUENCY
+    }
+
     private var telemetry: Telemetry? = null
 
     override fun init() {
@@ -18,7 +26,8 @@ class ControlLoop : LoopManager(ROBOT_LOOP_PERIOD) {
     }
 
     override fun afterLoop() {
-        telemetry?.update()
+        if (updateTelemetry)
+            telemetry?.update()
     }
 }
 

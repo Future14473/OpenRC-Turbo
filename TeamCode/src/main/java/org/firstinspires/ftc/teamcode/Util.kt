@@ -1,12 +1,16 @@
 package org.firstinspires.ftc.teamcode
 
+import org.futurerobotics.jargon.math.distTo
+import kotlin.math.sign
+
 
 /**
- * Only exists so that the formatter isn't annoying.
+ * Moves [this] double value towards the [target] value, with a given [maxDelta],
+ * without overshoot.
  *
- * `of the x` returns `x`.
+ * Or, gets the closest value to [target] that is at most [maxDelta] away from [this].
  */
-object of {
-
-    inline infix fun <T> the(t: T): T = t
+fun Double.moveTowards(target: Double, maxDelta: Double): Double = when {
+    target distTo this <= maxDelta -> target
+    else -> this + maxDelta * sign(target - this)
 }

@@ -20,29 +20,8 @@ allprojects {
         google()
         jcenter()
         maven { url 'https://dl.bintray.com/openftc/maven' }
-        maven { url 'https://dl.bintray.com/future14473/maven-snapshot' }
+        maven { url 'https://oss.jfrog.org/artifactory/oss-snapshot-local' }
     }
-    afterEvaluate {
-        def configureAndroid = {
-            android {
-                buildTypes {
-                    noDebug {
-                        initWith debug
-                        debuggable false
-                        jniDebuggable false
-                        renderscriptDebuggable false
-                    }
-                }
-            }
-        }
-        plugins.withId("com.android.library") {
-            configureAndroid()
-        }
-        plugins.withId("com.android.application") {
-            configureAndroid()
-        }
-    }
-
 }
 
 

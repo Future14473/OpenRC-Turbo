@@ -132,6 +132,12 @@ interface SyncScope {
      * This may not do anything if there is no [LoopElement] that is on the [clazz].
      */
     suspend fun <T> await(clazz: Class<T>): T?
+    /**
+     * Awaits a [SyncedElement]
+     *
+     * This may not do anything if that [syncedElement] does not exist in the loop.
+     */
+    suspend fun await(syncedElement: SyncedElement)
 
     /**
      * Awaits all [SyncedElement]s or [LoopElement]s that are added to the same loop

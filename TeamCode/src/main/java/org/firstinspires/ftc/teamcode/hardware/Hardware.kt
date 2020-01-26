@@ -6,6 +6,7 @@ import com.qualcomm.robotcore.hardware.HardwareMap
 import org.futurerobotics.botsystem.BaseElement
 import org.futurerobotics.botsystem.Property
 import org.futurerobotics.botsystem.ftc.OpModeElement
+import org.futurerobotics.jargon.math.convert.*
 import org.openftc.revextensions2.ExpansionHubEx
 
 private const val imuName = "imu"
@@ -20,38 +21,36 @@ private val wheelConfigs = run {
     )
 }
 
+internal const val liftTpr = 537.6
 private val liftConfigs = run {
-    val tpr = 537.6
     arrayOf(
-        MotorConfig("LiftLeft", DcMotorSimple.Direction.REVERSE, -tpr),
-        MotorConfig("LiftRight", DcMotorSimple.Direction.FORWARD, tpr)
+        MotorConfig("LiftLeft", DcMotorSimple.Direction.REVERSE, -liftTpr),
+        MotorConfig("LiftRight", DcMotorSimple.Direction.FORWARD, liftTpr)
     )
 }
-//TODO
-//Cause this is also odometry.
-//This will be fun.
 @Suppress("UNREACHABLE_CODE")
 private val intakeConfigs = run {
-    val tpr = TODO()
+    val tpr = 360.0 * 4
     arrayOf(
         MotorConfig("IntakeLeft", DcMotorSimple.Direction.FORWARD, tpr),
         MotorConfig("IntakeRight", DcMotorSimple.Direction.REVERSE, tpr)
     )
 }
-
-//TODO
-private val linkageConfigs = arrayOf(
-    RangedServoConfig("LinkageLeft", 0.0..1.0, 0.0..1.0),
-    RangedServoConfig("LinkageRight", 0.0..1.0, 0.0..1.0)
+//servos
+private val extensionConfigs = arrayOf(
+    RangedServoConfig("LinkageLeft", 0.81..0.34, 0.0..1.0), //1.0 == out
+    RangedServoConfig("LinkageRight", 0.31..0.78, 0.0..1.0)
 )
-//TODO
-val rotaterConfig = RangedServoConfig("Rotater", 0.0..1.0, 0.0..1.0)
+private val rotaterConfig = RangedServoConfig("Rotater", 0.83..0.1, 0 * deg..180 * deg)
 
-//TODO
-val clawConfig = ServoDoorConfig("Claw", 0.0..1.0, true)
+private val clawConfig = ServoDoorConfig("Claw", 1.0..0.0, true)
 
-//TODO
-val dropperConfig = ServoDoorConfig("Dropper", 0.0..1.0, false)
+private val dropperConfig = ServoDoorConfig("Dropper", 0.715..0.25, false)
+
+private val grabberConfigs = arrayOf(
+    ServoDoorConfig("GrabberLeft", 0.71..0.25, true), //one using software,
+    ServoDoorConfig("GrabberRight", 0.0..1.0, true) //the other one using limits. Wonderful.
+)
 
 class Hardware : BaseElement() {
 
@@ -78,11 +77,13 @@ class Hardware : BaseElement() {
 
     val hubs: List<ExpansionHubEx>? by hardwareMap { getAll(ExpansionHubEx::class.java).takeIf { it.size == 2 } }
 
-    val linkageServos by linkageConfigs.getAllOrNull()
+    val extensionServos by extensionConfigs.getAllOrNull()
 
     val rotater by rotaterConfig.getOrNull()
 
     val claw by clawConfig.getOrNull()
 
     val dropper by dropperConfig.getOrNull()
+
+    val grabbers by grabberConfigs.getAllOrNull()
 }

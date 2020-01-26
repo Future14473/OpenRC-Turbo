@@ -9,11 +9,10 @@ import kotlin.coroutines.CoroutineContext
 import kotlin.coroutines.EmptyCoroutineContext
 
 /**
- * An op mode which runs a [BotSystem], given some `initialElements`.
- *
- * It will call [BotSystem.init] on init, and [BotSystem.start] on start.
- *
+ * An op mode which runs a [BotSystem]. The elements of the bot system are given in [getElements].
  * [OpModeElement] will be added to the given elements.
+ *
+ * This will init, start, and stop the [BotSystem] at appropriate times.
  *
  * One can also override the [additionalRun] function to run additional actions, and use like [CoroutineOpMode].
  *
@@ -27,7 +26,7 @@ abstract class BotSystemsOpMode(
         override lateinit var coroutineContext: CoroutineContext
     }
 
-    protected abstract fun getElements(): Collection<Element>
+    protected abstract fun getElements(): Array<out Element>
 
     @Suppress("LeakingThis")
     protected val botSystem by lazy {

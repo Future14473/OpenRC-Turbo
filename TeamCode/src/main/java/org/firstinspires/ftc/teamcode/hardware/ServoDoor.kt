@@ -8,19 +8,25 @@ import com.qualcomm.robotcore.hardware.Servo
 class ServoDoor(
     private val servo: Servo,
     private val closeOpenRange: ClosedFloatingPointRange<Double>,
-    initialIsOpen: Boolean
+    initialIsOpen: Boolean? = null
 ) {
 
     var isOpen = false
         set(value) {
-            if (value != field) {
-                servo.position = if (value) closeOpenRange.endInclusive else closeOpenRange.start
-            }
+            servo.position = if (value) closeOpenRange.endInclusive else closeOpenRange.start
             field = value
         }
 
+    var isClosed
+        get() = !isOpen
+        set(value) {
+            isOpen = !value
+        }
+
     init {
-        isOpen = initialIsOpen
+        if (initialIsOpen != null) {
+            isOpen = initialIsOpen
+        }
     }
 
     fun close() {
@@ -30,5 +36,4 @@ class ServoDoor(
     fun open() {
         isOpen = true
     }
-
 }

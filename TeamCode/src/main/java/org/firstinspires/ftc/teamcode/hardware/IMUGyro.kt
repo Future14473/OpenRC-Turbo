@@ -4,7 +4,6 @@ import com.qualcomm.hardware.bosch.BNO055IMU
 import org.futurerobotics.jargon.hardware.Gyro
 
 private val imuParams = BNO055IMU.Parameters().apply {
-    mode = BNO055IMU.SensorMode.GYRONLY
     angleUnit = BNO055IMU.AngleUnit.RADIANS
 }
 
@@ -24,7 +23,15 @@ class IMUGyro(private val imu: BNO055IMU, initOnStart: Boolean) : Gyro {
 
     fun isInitialized() = imu.isGyroCalibrated
     override val angle: Double
-        get() = -imu.angularOrientation.firstAngle.toDouble()
+        get() = fullOrientation.firstAngle.toDouble()
+
+    val fullOrientation
+        get() = imu.angularOrientation
+    //            imu.getAngularOrientation(
+//            AxesReference.INTRINSIC,
+//            AxesOrder.ZYX,
+//            AngleUnit.RADIANS
+//        )
     override val angularVelocity: Double
         get() = -imu.angularVelocity.zRotationRate.toDouble()
 }

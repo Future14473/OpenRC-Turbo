@@ -56,9 +56,12 @@ fun BulkData.getMotorVelocities(motors: List<FtcMotor>): Vec {
  * [BulkData] based off of multiple [RevBulkData]s.
  */
 class MultipleBulkData(data: Collection<RevBulkData>) : BulkData {
-    constructor(hubs: List<ExpansionHubEx>):this(hubs.map { it.bulkInputData })
+
+    constructor(hubs: List<ExpansionHubEx>) : this(hubs.map { it.bulkInputData })
+
     // look up by module, which is in DcMotorExImpl
     private val allData = data.associateBy { revDataModuleField[it] as LynxModule }
+
     override fun getMotorPositionTicks(motor: DcMotor): Int =
         getCorrespondingBulkData(motor)
             .getMotorCurrentPosition(motor.portNumber)

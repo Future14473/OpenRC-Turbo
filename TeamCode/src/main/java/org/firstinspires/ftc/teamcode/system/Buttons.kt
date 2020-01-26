@@ -6,6 +6,7 @@ import com.qualcomm.robotcore.hardware.Gamepad
  * Utilites for when button is clicked/released
  */
 class Buttons(private val gamepad: Gamepad) {
+
     val a = Button()
     val b = Button()
     val x = Button()

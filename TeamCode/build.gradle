@@ -17,7 +17,7 @@ apply from: '../build.common.gradle'
 apply plugin: 'kotlin-android'
 repositories {
     mavenCentral()
-    jcenter()
+//    jcenter()
 }
 
 dependencies {
@@ -27,10 +27,10 @@ dependencies {
 
     implementation project(':BotSystem')
 
-    implementation "org.futurerobotics.jargon:jargon-core:0.1.1"
-    implementation "org.futurerobotics.jargon:jargon-pathing:0.1.1"
-    implementation "org.futurerobotics.jargon:jargon-coroutine-integration:0.1.1"
-    implementation "org.futurerobotics.jargon:jargon-state-space:0.1.1"
+    implementation "org.futurerobotics.jargon:jargon-core:0.2.0-SNAPSHOT"
+    implementation "org.futurerobotics.jargon:jargon-pathing:0.2.0-SNAPSHOT"
+    implementation "org.futurerobotics.jargon:jargon-coroutine-integration:0.2.0-SNAPSHOT"
+    implementation "org.futurerobotics.jargon:jargon-state-space:0.2.0-SNAPSHOT"
 
     implementation "org.openftc:rev-extensions-2:1.2"
 
@@ -40,10 +40,13 @@ dependencies {
     testImplementation "org.jetbrains.kotlinx:kotlinx-coroutines-test:$kotlin_coroutines_version"
     testImplementation "org.jetbrains.kotlinx:kotlinx-coroutines-debug:$kotlin_coroutines_version"
 
+    testImplementation "io.strikt:strikt-core:0.23.4"
+
     testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.5.2'
     testImplementation "org.knowm.xchart:xchart:3.6.0"
 
     implementation project(':FtcRobotController')
+    implementation project(':bluejay')
 }
 android {
     kotlinOptions {
@@ -57,13 +60,11 @@ android {
         }
     }
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_1_10
-        targetCompatibility JavaVersion.VERSION_1_10
-    }
-    buildTypes {
-        noDebug {
-            minifyEnabled true
-            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
-        }
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
     }
 }
+
+//configurations.all {
+//    resolutionStrategy.cacheChangingModulesFor 0, 'seconds'
+//}

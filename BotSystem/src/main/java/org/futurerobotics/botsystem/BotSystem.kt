@@ -1,7 +1,6 @@
 package org.futurerobotics.botsystem
 
 import kotlinx.coroutines.*
-import org.futurerobotics.jargon.util.uncheckedCast
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.collections.HashSet
@@ -12,21 +11,20 @@ import kotlin.coroutines.EmptyCoroutineContext
  *
  * This by itself isn't much but a container, it is the [Element]s that do all the work.
  */
-interface BotSystem {
+sealed class BotSystem {
 
     /**
      * The coroutine scope of this bot system, in which all elements are launched from.
      */
-    val coroutineScope: CoroutineScope
+    abstract val coroutineScope: CoroutineScope
     /**
      * The job of this bot system, in which all running element processes are a child of.
      */
-    @JvmDefault
     val job: Job
         get() = coroutineScope.coroutineContext[Job]!!
 
     /** A collection of all elements. */
-    val elements: Collection<Element>
+    abstract val elements: Collection<Element>
 
     /**
      * Gets only ***one*** [Element] via a class, or throws an exception if it does not exist.
@@ -34,7 +32,7 @@ interface BotSystem {
      * @see tryGet
      * @see getAll
      */
-    fun <E> get(identifier: Class<E>): E
+    abstract fun <E> get(identifier: Class<E>): E
 
     /**
      * Gets only ***one*** [Element] via a class, or `null` if it does not exist.
@@ -43,7 +41,7 @@ interface BotSystem {
      * @see getAll
      */
     @Suppress("UNCHECKED_CAST")
-    fun <E> tryGet(identifier: Class<E>): E?
+    abstract fun <E> tryGet(identifier: Class<E>): E?
 
     /**
      * Gets all [Element]s that are a subclass fo the given [identifier].
@@ -51,7 +49,17 @@ interface BotSystem {
      * @see get
      * @see tryGet
      */
-    fun <E> getAll(identifier: Class<E>): Collection<E>
+    abstract fun <E> getAll(identifier: Class<E>): Collection<E>
+
+
+    @JvmSynthetic
+    inline fun <reified T> get() = get(T::class.java)
+
+    @JvmSynthetic
+    inline fun <reified T> tryGet() = tryGet(T::class.java)
+
+    @JvmSynthetic
+    inline fun <reified T> getAll() = getAll(T::class.java)
 
 
     /**
@@ -72,29 +80,28 @@ interface BotSystem {
      * system's [coroutineScope].
      */
     @JvmSynthetic
-    suspend fun init(usingScope: Boolean = true)
+    abstract suspend fun init(usingScope: Boolean = true)
 
     /**
      * Calls [Element.start] on all [Element]s.
      *
      * This is nothing more than a message to the elements.
      */
-    fun start()
+    abstract fun start()
 
     /**
      * If is started.
      */
-    val isStarted: Boolean
+    abstract val isStarted: Boolean
 
     /**
      * Waits until `start` has been called and after all Elements have [BotSystem.start] called.
      */
-    suspend fun waitForStart()
+    abstract suspend fun waitForStart()
 
     /**
      * Waits until `start` has been called, blocking.
      */
-    @JvmDefault
     @Throws(InterruptedException::class)
     fun waitForStartBlocking() = runBlocking {
         waitForStart()
@@ -103,13 +110,13 @@ interface BotSystem {
     /**
      * Stops the system by way of cancelling all children of the system.
      */
-    fun stop()
+    abstract fun stop()
 
     /**
      * Awaits all elements to be done by waiting on the coroutineScope.
      */
     @JvmSynthetic
-    suspend fun awaitTermination()
+    abstract suspend fun awaitTermination()
 
     /**
      * Awaits all elements to be done by waiting the coroutineScope.
@@ -147,14 +154,12 @@ interface BotSystem {
     }
 }
 
-inline fun <reified T> BotSystem.get() = get(T::class.java)
-inline fun <reified T> BotSystem.tryGet() = tryGet(T::class.java)
 
-//Optimize? necessary? probably not.
+//Optimize? probably not necessary.
 internal class BotSystemImpl(
     override val coroutineScope: CoroutineScope,
     initialElements: Iterable<Element>
-) : BotSystem {
+) : BotSystem() {
 
     private val allElements = mutableSetOf<Element>()
 
@@ -197,6 +202,7 @@ internal class BotSystemImpl(
                 element.dependsOn.forEach {
                     resolveDependency(it)
                 }
+                addToIdentifiedBy(element)
                 identifiedBy.getValue(element).forEach {
                     mappedElements.getOrPut(it) { mutableSetOf() } += element
                 }
@@ -214,16 +220,12 @@ internal class BotSystemImpl(
     private fun addToIdentifiedBy(element: Element) {
         val elementClass = element.javaClass
         identifiedBy[element] =
-
             sequence<Class<*>> {
                 var curClass: Class<*>? = elementClass
-                while (curClass != null && Element::class.java.isAssignableFrom(curClass)) {
-                    yield(curClass.uncheckedCast())
+                yieldAll(elementClass.interfaces.asList())
+                while (curClass != null) {
+                    yield(curClass)
                     curClass = curClass.superclass
-                }
-                elementClass.interfaces.forEach { intf ->
-                    if (Element::class.java.isAssignableFrom(intf))
-                        yield(intf.uncheckedCast())
                 }
             }.toHashSet()
     }
@@ -234,10 +236,11 @@ internal class BotSystemImpl(
     override val elements: Collection<Element> = Collections.unmodifiableCollection(allElements)
 
     override fun <E> get(identifier: Class<E>): E =
-        tryGet(identifier) ?: error("Element with identifier $identifier does not exist.")
+        tryGet(identifier) ?: error("Element with class $identifier does not exist.")
 
+    @Suppress("UNCHECKED_CAST")
     override fun <E> tryGet(identifier: Class<E>): E? =
-        mappedElements[identifier]!!.firstOrNull().uncheckedCast()
+        mappedElements[identifier]?.firstOrNull() as E?
 
     override fun <E> getAll(identifier: Class<E>): Collection<E> {
         @Suppress("UNCHECKED_CAST")

@@ -35,11 +35,6 @@ abstract class LoopManager(
 ) : BaseElement() {
 
     private val elementChannel = Channel<SyncedElement>(Channel.UNLIMITED)
-    /**
-     * The elapsed nanos of the previous loop. This kinda only makes sense to be polled from within a loop.
-     */
-    var elapsedNanos: Long = 0L
-        private set
 
     internal fun addElement(element: SyncedElement) {
         try {
@@ -48,6 +43,17 @@ abstract class LoopManager(
             throw IllegalStateException("Cannot add element _after_ start")
         }
     }
+
+    /**
+     * The elapsed nanos of the previous loop. This kinda only makes sense to be polled from within a loop.
+     */
+    @Volatile
+    var elapsedNanos: Long = 0L
+        private set
+    /**
+     * The elapsed seconds of the previous loop. This kinda only makes sense to be polled from within a loop.
+     */
+    val elapsedSeconds: Double get() = elapsedNanos / 1e9
 
     /**
      * Run before each loop.
@@ -63,12 +69,12 @@ abstract class LoopManager(
 
     init {
         onInit {
-            coroutineScope.launchLoop()
+            launchLoop()
         }
     }
 
     @UseExperimental(ExperimentalCoroutinesApi::class)
-    private fun CoroutineScope.launchLoop() = launch {
+    private fun launchLoop() = botSystem.coroutineScope.launch {
         //run loop
         botSystem.waitForStart()
         elementChannel.close()
@@ -149,11 +155,15 @@ abstract class LoopManager(
 
             @Suppress("UNCHECKED_CAST")
             override suspend fun <T> await(clazz: Class<T>): T? {
-                val dependant = dependantLoopkup[clazz] ?: return null
-                dependant.forEach { dependant ->
+                val dependants = dependantLoopkup[clazz] ?: return null
+                dependants.forEach { dependant ->
                     elementsMap[dependant]!!.currentJob.join()
                 }
-                return dependant.firstOrNull() as T?
+                return dependants.firstOrNull() as T?
+            }
+
+            override suspend fun await(syncedElement: SyncedElement) {
+                elementsMap[syncedElement]?.currentJob?.join()
             }
 
             override suspend fun awaitAllDependencies() {
