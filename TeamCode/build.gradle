@@ -16,8 +16,9 @@ apply from: '../build.common.gradle'
 
 apply plugin: 'kotlin-android'
 repositories {
+    mavenLocal()
     mavenCentral()
-//    jcenter()
+    jcenter()
 }
 
 dependencies {

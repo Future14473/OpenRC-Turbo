@@ -4,6 +4,7 @@ import org.firstinspires.ftc.teamcode.system.ControlLoop
 import org.futurerobotics.botsystem.LoopElement
 import org.futurerobotics.botsystem.ftc.OpModeElement
 import org.futurerobotics.jargon.control.FeedForwardWrapper
+import org.futurerobotics.jargon.control.GlobalToBot
 import org.futurerobotics.jargon.control.PIDCoefficients
 import org.futurerobotics.jargon.control.PosePIDController
 import org.futurerobotics.jargon.math.MotionState
@@ -38,7 +39,10 @@ class DrivePositionController
     override fun loop() {
         val curPose = localizer.value
         val reference = driveTarget.targetState
-        val motion = controller.update(reference, curPose, controlLoop.elapsedNanos)
+        val motion = GlobalToBot.motion(
+            controller.update(reference, curPose, controlLoop.elapsedNanos),
+            curPose.heading
+        )
         targetVelocity = motion.toVelocityMotionState(Pose2d.ZERO)
         if (debug) telemetry?.apply {
             addLine("Target velocity: ${motion.velocity}")

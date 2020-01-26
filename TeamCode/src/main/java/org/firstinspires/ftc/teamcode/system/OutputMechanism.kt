@@ -6,7 +6,7 @@ import org.firstinspires.ftc.teamcode.system.OutputMechanism.Companion.blockHeig
 import org.firstinspires.ftc.teamcode.system.OutputMechanism.Companion.delayGrabMillis
 import org.firstinspires.ftc.teamcode.system.OutputMechanism.Companion.delayReleaseMillis
 import org.firstinspires.ftc.teamcode.system.OutputMechanism.Companion.dropperReleaseMillis
-import org.firstinspires.ftc.teamcode.system.OutputMechanism.Companion.extendMaxAmount
+import org.firstinspires.ftc.teamcode.system.OutputMechanism.Companion.extendMaxAngle
 import org.firstinspires.ftc.teamcode.system.OutputMechanism.Companion.extendMaxSpeed
 import org.firstinspires.ftc.teamcode.system.OutputMechanism.Companion.extendMinCanEmptyRotate
 import org.firstinspires.ftc.teamcode.system.OutputMechanism.Companion.extendMinCanRotate
@@ -48,7 +48,7 @@ class OutputMechanism
         const val liftReadyTolerance = 2 * `in` //as in all the way down
         const val liftBeforeExtendTolerance = 3 * `in`
 
-        const val extendMaxAmount = 1.0
+        const val extendMaxAngle = 1.0
         const val extendMaxSpeed = 0.8
         const val extendReady = .4
 
@@ -181,10 +181,10 @@ internal enum class OutputStateMachine {
     },
     Out { //Extension is out -- doing the stacking
         override suspend fun OutputMechanism.runState(): OutputStateMachine {
-            extension.targetAngle = extendMaxAmount
+            extension.targetAngle = extendMaxAngle
             loop {
                 controlLift(liftSignal)
-                controlExtension(extensionSignal, extendMinCanRotate..extendMaxAmount)
+                controlExtension(extensionSignal, extendMinCanRotate..extendMaxAngle)
                 controlRotation()
                 if (extension.currentAngle >= extendMinCanRotate && rotaterTargetDeferred != 0.0) {
                     rotater.targetAngle = rotaterTargetDeferred
@@ -202,7 +202,7 @@ internal enum class OutputStateMachine {
             loop {
                 controlLift(liftSignal)
                 if (to90Signal || to180Signal) {
-                    extension.targetAngle = extendMaxAmount
+                    extension.targetAngle = extendMaxAngle
                 } else if (retractSignal) {
                     extension.targetAngle = extendReady
                 }

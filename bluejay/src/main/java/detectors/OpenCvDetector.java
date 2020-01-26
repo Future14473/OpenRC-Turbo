@@ -5,10 +5,8 @@ import detectors.FoundationPipeline.Foundation;
 import detectors.FoundationPipeline.Pipeline;
 import detectors.FoundationPipeline.Skystone;
 import detectors.FoundationPipeline.Stone;
-import org.opencv.core.Core;
 import org.opencv.core.Mat;
 import org.openftc.easyopencv.*;
-import org.openftc.opencvrepackaged.DynamicOpenCvNativeLibLoader;
 
 public class OpenCvDetector extends StartStoppable {
 	
@@ -21,14 +19,13 @@ public class OpenCvDetector extends StartStoppable {
 	//This is a reference to the camera
 	private OpenCvCamera phoneCam;
 	
-	public OpenCvDetector() {
-		
+	public OpenCvDetector(Context appContext) {
 		//init EOCV
-//		int cameraMonitorViewId = appContext.getResources().getIdentifier("cameraMonitorViewId", "id",
-//				appContext.getPackageName());
+		int cameraMonitorViewId = appContext.getResources().getIdentifier("cameraMonitorViewId", "id",
+				appContext.getPackageName());
 //
 		phoneCam = OpenCvCameraFactory.getInstance()
-				           .createInternalCamera(OpenCvInternalCamera.CameraDirection.BACK);
+				           .createInternalCamera(OpenCvInternalCamera.CameraDirection.BACK, cameraMonitorViewId);
 		
 		Pipeline.doFoundations = false;
 		Pipeline.doStones = false;

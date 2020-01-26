@@ -14,7 +14,7 @@ import org.futurerobotics.jargon.math.Pose2d
 import org.futurerobotics.jargon.math.convert.*
 
 val headingCoefficients = ExtendedPIDCoefficients(
-    4.0, 0.1, 0.0,
+    3.0, 0.1, 0.0,
     errorBounds = Interval.symmetric(30 * deg)
 )
 

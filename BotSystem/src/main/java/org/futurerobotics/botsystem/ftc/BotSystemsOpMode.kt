@@ -39,7 +39,11 @@ abstract class BotSystemsOpMode(
 
     final override suspend fun runOpMode() = coroutineScope {
         lateScope.coroutineContext = coroutineContext
+        telemetry.addLine("Initializing...")
+        telemetry.update()
         botSystem.init()
+        telemetry.addLine("Done initializing")
+        telemetry.update()
         launch {
             additionalRun()
         }

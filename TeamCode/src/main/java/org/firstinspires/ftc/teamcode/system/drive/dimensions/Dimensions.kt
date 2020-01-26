@@ -20,11 +20,11 @@ const val block = 7.5 * `in`
 
 val startLoading = Pose2d(x = -(1 * tile + .5 * robot), y = (3 * tile - .5 * robot), heading = right)
 
-val bridgeEnter = Vector2d(-.5 * tile - .5 * robot, 1.5 * tile)
-val bridgeExit = Vector2d(.5 * tile + .5 * robot, 1.5 * tile)
+val bridgeEnter = Vector2d(-.5 * tile - .5 * robot, 1.4 * tile)
+val bridgeExit = Vector2d(1.0 * tile + .5 * robot, 1.4 * tile)
 
 val neutralEnter = Vector2d(tile, .5 * robot)
 val neutralExit = Vector2d(tile, .5 * robot)
 
-val look1 = Pose2d(-2.5 * tile, startLoading.y, right)
+val look1 = Pose2d(-2.8 * tile, startLoading.y, right)
 val grabAngle = -145 * deg

@@ -16,14 +16,14 @@ val graph = PathGraph().apply {
         reverse.weight = Int.MAX_VALUE
     }
 
-    //neutral bridge
-    addNode(neutralEnter).name("neutral enter")
-        .lineTo(neutralExit).name("neutral exit")() {
-        reverse.weight = Int.MAX_VALUE
-    }
+//    //neutral bridge
+//    addNode(neutralEnter).name("neutral enter")
+//        .lineTo(neutralExit).name("neutral exit")() {
+//        reverse.weight = Int.MAX_VALUE
+//    }
 
-    "neutral exit"().splineTo("bridge enter")
-    "bridge exit"().splineTo("neutral enter")
+//    "neutral exit"().splineTo("bridge enter")
+//    "bridge exit"().splineTo("neutral enter")
 
     addNode(look1).name("look 1")() {
         "start loading"().splineTo(this)
@@ -49,7 +49,7 @@ val graph = PathGraph().apply {
 
     addNode(2.5 * tile, 2.0 * tile).name("stack")() {
         "bridge exit"().splineTo(this.location + Vector2d(-1 * tile, 0.0)).splineTo(this)
-        this.splineTo("neutral enter")
+//        this.splineTo("neutral enter")
     }
 
     addNode(0.0, 0.5 * tile)() {
