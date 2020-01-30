@@ -66,12 +66,14 @@ public class OpenCvDetector extends StartStoppable {
 
 	}
 
+	//will be called when detector is activated
 	@Override
 	public void begin() {
 		Log.d("ROBOT","BEGIN_________________");
 		phoneCam.startStreaming(640, 480, OpenCvCameraRotation.UPRIGHT);
 	}
 
+	//will be called when detector is ended
 	@Override
 	public void end() {
 		phoneCam.stopStreaming();
