@@ -25,7 +25,7 @@ enum class BotSide(val backwards: Boolean) {
 //TODO: unify drive
 class DrivePathFollower(
     fieldSide: FieldSide,
-    initialPose: Pose2d = Pose2d.ZERO,
+    private val initialPose: Pose2d = Pose2d.ZERO,
     private val debug: Boolean = false
 ) : LoopElement() {
 
@@ -50,11 +50,18 @@ class DrivePathFollower(
 
     @Volatile
     var targetState: MotionState<Pose2d> =
-        MotionState(initialPose.replaceIf(reversed) { it.mirrored() }, Pose2d.ZERO, Pose2d.ZERO)
-        private set
+        MotionState(initialPose.replaceIf(reversed) {
+            it.mirrored()
+        }, Pose2d.ZERO, Pose2d.ZERO)
 
     override fun init() {
-        motionProfileFollower.reset(targetState)
+        motionProfileFollower.reset(
+            MotionState(
+                initialPose,
+                Pose2d.ZERO,
+                Pose2d.ZERO
+            )
+        )
     }
 
     override fun loop() {

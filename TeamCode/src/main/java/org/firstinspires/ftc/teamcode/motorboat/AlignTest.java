@@ -11,7 +11,7 @@ import org.firstinspires.ftc.teamcode.motorboat.botsys.Robot;
 
 @TeleOp(name = "AUTO TEST", group = "Auto")
 @Disabled
-class AlignTest extends LinearOpMode {
+public class AlignTest extends LinearOpMode {
 
 	private OpenCvDetector fieldElementDetector;
 	private BotMap hardwareMap;

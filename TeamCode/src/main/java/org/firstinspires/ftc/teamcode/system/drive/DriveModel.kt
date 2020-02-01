@@ -54,6 +54,6 @@ object DriveModel {
     }
 
     const val voltPerAccel = 0.1
-    const val voltPerVel = 0.23
+    const val voltPerVel = 0.22
 }
 

@@ -61,8 +61,8 @@ public class Constants {
         yellowTags = compute.threshold(  //just want all of it
                 resizedImage,
                 stressedYellowRange,
-                new double[]{90, 255},//sat
-                new double[]{blackCutOff*0.8 , 255}); //val
+                new double[]{110, 255},//sat
+                new double[]{blackCutOff * 0.8, 255}); //val
         //        Mat yellowTags = compute.threshold(
 //                resizedImage,
 //                new double[]{80,105},

@@ -1,6 +1,8 @@
 package org.firstinspires.ftc.teamcode.system.drive
 
+import com.qualcomm.robotcore.eventloop.opmode.Disabled
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp
+import com.qualcomm.robotcore.util.RobotLog
 import org.firstinspires.ftc.teamcode.hardware.Hardware
 import org.firstinspires.ftc.teamcode.hardware.getMotorAngles
 import org.firstinspires.ftc.teamcode.system.GyroAngle
@@ -47,6 +49,10 @@ class Localizer
     initialPose: Pose2d = Pose2d.ZERO,
     private val debug: Boolean = false
 ) : LoopValueElement<Pose2d>() {
+
+    init {
+        RobotLog.d("LOCALIZING START AT %s", initialPose)
+    }
 
     private val theBulkData: TheBulkData by dependency()
     private val allMotors by dependency(Hardware::class) {
@@ -103,6 +109,7 @@ class Localizer
 }
 
 @TeleOp(name = "Odometry Test", group = "Test")
+@Disabled
 class OdometryTest : BotSystemsOpMode() {
 
     override fun getElements(): Array<Element> = arrayOf(

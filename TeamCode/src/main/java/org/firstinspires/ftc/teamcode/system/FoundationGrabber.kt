@@ -1,5 +1,6 @@
 package org.firstinspires.ftc.teamcode.system
 
+import com.qualcomm.robotcore.eventloop.opmode.Disabled
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp
 import org.firstinspires.ftc.teamcode.hardware.Hardware
 import org.futurerobotics.botsystem.Element
@@ -30,7 +31,8 @@ class FoundationGrabber : LoopElement() {
     }
 }
 
-@TeleOp
+@TeleOp(group = "Test")
+@Disabled
 class GrabberOnly : BotSystemsOpMode() {
 
     override fun getElements(): Array<out Element> {

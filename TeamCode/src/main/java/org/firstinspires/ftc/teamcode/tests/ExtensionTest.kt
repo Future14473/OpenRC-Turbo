@@ -1,5 +1,6 @@
 package org.firstinspires.ftc.teamcode.tests
 
+import com.qualcomm.robotcore.eventloop.opmode.Disabled
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp
 import org.firstinspires.ftc.teamcode.system.ControlLoop
 import org.firstinspires.ftc.teamcode.system.Extension
@@ -8,6 +9,7 @@ import org.futurerobotics.botsystem.LoopElement
 import org.futurerobotics.botsystem.ftc.BotSystemsOpMode
 
 @TeleOp(name = "Extension Test", group = "Test")
+@Disabled
 class ExtensionTest : BotSystemsOpMode() {
 
     override fun getElements(): Array<Element> = arrayOf(additional)

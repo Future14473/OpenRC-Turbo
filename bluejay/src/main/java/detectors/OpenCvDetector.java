@@ -39,7 +39,7 @@ public class OpenCvDetector extends StartStoppable implements AutoCloseable {
 		phoneCam.setPipeline(new OpenCvPipeline() {
 			@Override
 			public Mat processFrame(Mat input) {
-				Log.d("ROBOT", "RUN_________________");
+				Log.d("CV", "RUN_________________");
 				return Pipeline.process(input);
 			}
 		});
@@ -55,7 +55,7 @@ public class OpenCvDetector extends StartStoppable implements AutoCloseable {
 	//will be called when detector is activated
 	@Override
 	public void begin() {
-		Log.d("ROBOT", "BEGIN_________________");
+		Log.d("CV", "BEGIN_________________");
 		phoneCam.startStreaming(640, 480, OpenCvCameraRotation.UPRIGHT);
 	}
 

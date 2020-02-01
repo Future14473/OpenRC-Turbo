@@ -1,7 +1,6 @@
 package org.firstinspires.ftc.teamcode.system.drive
 
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous
-import kotlinx.coroutines.delay
 import org.firstinspires.ftc.teamcode.system.drive.dimensions.tile
 import org.futurerobotics.botsystem.Element
 import org.futurerobotics.botsystem.ftc.BotSystemsOpMode
@@ -25,11 +24,10 @@ abstract class AbstractDriveTest : BotSystemsOpMode() {
     abstract override suspend fun additionalRun()
 }
 
-@Autonomous
-class DriveTestStraightForward : AbstractDriveTest() {
+@Autonomous(name = "Just drive forward 1.5 floor tiles", group = "eh")
+class JustDriveForward : AbstractDriveTest() {
 
     override suspend fun additionalRun() {
-        delay(25000)
         pathFollower.followPath(
             Line(Vector2d.ZERO, Vector2d(1.5 * tile, 0.0))
                 .addHeading(TangentHeading())

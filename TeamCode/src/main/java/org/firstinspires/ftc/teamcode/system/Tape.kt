@@ -7,7 +7,7 @@ import org.futurerobotics.botsystem.ftc.OpModeElement
 
 class Tape : LoopElement() {
     companion object {
-        const val maxPower = 1
+        const val maxPower = 1.0
     }
 
     init {
@@ -17,7 +17,7 @@ class Tape : LoopElement() {
     private val gamepad: Gamepad by dependency(OpModeElement::class) { opMode.gamepad1 }
     private val servo by dependency(Hardware::class) { tape ?: error("Tape servo not found (check config)") }
 
-    private val Boolean.f get() = if (this) 1.0 else 0.0
+    private val Boolean.f get() = if (this) 1 else 0
 
     override fun loop() {
         val power = (gamepad.y.f - gamepad.x.f) * maxPower

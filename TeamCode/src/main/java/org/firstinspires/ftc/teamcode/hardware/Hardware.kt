@@ -49,7 +49,7 @@ private val clawConfig = ServoDoorConfig("Claw", 1.0..0.0, true)
 private val dropperConfig = ServoDoorConfig("Dropper", 0.715..0.25, false)
 
 private val grabberConfigs = arrayOf(
-    ServoDoorConfig("GrabberLeft", 0.71..0.25, true), //one using software,
+    ServoDoorConfig("GrabberLeft", 1.0..0.0, true), //one using software,
     ServoDoorConfig("GrabberRight", 0.0..1.0, true) //the other one using limits. Wonderful.
 )
 

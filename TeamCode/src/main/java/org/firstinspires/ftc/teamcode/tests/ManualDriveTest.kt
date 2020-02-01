@@ -1,5 +1,6 @@
 package org.firstinspires.ftc.teamcode.tests
 
+import com.qualcomm.robotcore.eventloop.opmode.Disabled
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp
 import org.firstinspires.ftc.teamcode.system.FrequencyRecorder
 import org.firstinspires.ftc.teamcode.system.drive.DriveVelocityController
@@ -10,6 +11,7 @@ import org.futurerobotics.botsystem.ftc.BotSystemsOpMode
 import org.futurerobotics.jargon.math.Pose2d
 
 @TeleOp(name = "Manual Drive Test", group = "Test")
+@Disabled
 class ManualDriveTest : BotSystemsOpMode() {
 
     override fun getElements(): Array<Element> =
