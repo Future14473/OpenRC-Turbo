@@ -1,31 +1,18 @@
 package org.firstinspires.ftc.teamcode.original;
 
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
-import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
 import org.firstinspires.ftc.teamcode.original.BotSys.imu;
 import org.firstinspires.ftc.teamcode.original.BotSys.map;
 import org.firstinspires.ftc.teamcode.original.BotSys.robot;
-
-import java.util.Arrays;
+import org.opencv.core.Point;
 
 import detectors.FoundationPipeline.SkyStone;
 import detectors.OpenCvDetector;
 
-/*
-
-    If you're using this library, THANKS! I spent a lot of time on it.
-
-    However, stuff isn't as well-documented as I like...still working on that
-
-    So if you have questions, email me at xchenbox@gmail.com and I will get back to you in about a day (usually)
-
-    Enjoy!
-*/
-
-@TeleOp(name = "AUTONOMOUS+", group = "Auto")
-public class MainAuto extends LinearOpMode {
+@TeleOp(name = "AUTO TEST", group = "Auto")
+public class AlignTest extends LinearOpMode {
 
 	OpenCvDetector  fieldElementDetector;
 	map             hardwareMap;
@@ -44,17 +31,8 @@ public class MainAuto extends LinearOpMode {
 
 		fieldElementDetector.start();
 
-		skyStoneAlign();
-
-		robot.drivetrain.move(1,-0.1,0);
-		robot.drivetrain.waitDeltaMovementUnits(200);
-
-		robot.drivetrain.rotateDegrees(-90, imu);
-
-		robot.drivetrain.move(0,1,0);
-		robot.drivetrain.waitDeltaMovementUnits(50);
-
-		robot.drivetrain.rotateDegrees(90, imu);
+		while (opModeIsActive())
+			skyStoneAlign();
 
 		fieldElementDetector.stop();
 	}
@@ -64,26 +42,17 @@ public class MainAuto extends LinearOpMode {
 		boolean aligned = false;
 		int noneInd = 0;
 
-		while (!aligned && noneInd < 50 && opModeIsActive()) {
+		//while (!aligned && noneInd < 50 && opModeIsActive()) {
 			//Skystone order in Array is left to right
 			SkyStone[] elements = fieldElementDetector.getSkyStones();
 
-			Arrays.sort(elements);
-
 			//empty
-			find:if (elements.length == 0) {
+			if (elements.length == 0) {
 				telemetry.addData("Nothing found", "For " + noneInd + "frames");
 
 				noneInd++;
 			} else {//detected
-				SkyStone that = elements[0];
-
-				if(that == null){
-					telemetry.addData("NULL","NULL");
-					break find;
-				}
-
-				int xpos = (int) that.x;
+				int xpos = (int) elements[0].x;
 				telemetry.addData("Position", xpos);
 
 				aligned = moveRobot(xpos);
@@ -91,7 +60,7 @@ public class MainAuto extends LinearOpMode {
 				noneInd = 0;
 			}
 			telemetry.update();
-		}
+		//}
 	}
 
 
@@ -102,15 +71,18 @@ public class MainAuto extends LinearOpMode {
 		//75 pixels ought to be close enough
 		if(Math.abs(difference) < 75) {
 			telemetry.addLine("Aligned to SkyStone!");
+			robot.drivetrain.move(-0, 0, 0);
 			return true;
 		}
 
 		if (difference > 0) {
 
 			telemetry.addData("Moving","Right");
+			robot.drivetrain.move(-0.5, 0, 0);
 		} else {
 			//Strafe Left
 			telemetry.addData("Moving","Left");
+			robot.drivetrain.move(0.5, 0, 0);
 		}
 
 		return false;
