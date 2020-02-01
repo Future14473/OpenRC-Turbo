@@ -4,6 +4,7 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp
 import org.firstinspires.ftc.teamcode.system.FoundationGrabber
 import org.firstinspires.ftc.teamcode.system.LiftController
 import org.firstinspires.ftc.teamcode.system.OutputMechanism
+import org.firstinspires.ftc.teamcode.system.Tape
 import org.firstinspires.ftc.teamcode.system.drive.DriveVelocityController
 import org.firstinspires.ftc.teamcode.system.drive.ManualDriveVelocitySignal
 import org.futurerobotics.botsystem.ftc.BotSystemsOpMode
@@ -19,6 +20,7 @@ class TheTeleOp : BotSystemsOpMode() {
         ManualDriveVelocitySignal(),
         DriveVelocityController(),
         //
-        FoundationGrabber()
+        FoundationGrabber(),
+        Tape()
     )
 }

@@ -122,7 +122,8 @@ class SingleLiftController {
 
         val vel = x[1]
         val minVolts = additionalVoltsForLimiter + voltsPerVel * vel
-        signal = (u[0] + uff[0] + ugff).coerceAtLeast(minVolts)
+        val actualUgff = if (r.norm <= 1 * `in`) 0.0 else ugff
+        signal = (u[0] + uff[0] + actualUgff).coerceAtLeast(minVolts)
         state = x
         return signal
     }
@@ -153,10 +154,10 @@ class LiftController
         private set
 
     override fun init() {
-        val liftMotors = hardware.liftsMotors ?: error("Lift motors not found! (check config)")
-        liftMotors.forEach {
-            it.resetPosition()
-        }
+        hardware.liftsMotors ?: error("Lift motors not found! (check config)")
+//        liftMotors.forEach {
+//            it.resetPosition()
+//        }
         controllers.forEach {
             it.reset(zeroVec(2))
         }

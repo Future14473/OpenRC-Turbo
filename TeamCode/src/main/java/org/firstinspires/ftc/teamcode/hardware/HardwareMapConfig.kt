@@ -1,9 +1,6 @@
 package org.firstinspires.ftc.teamcode.hardware
 
-import com.qualcomm.robotcore.hardware.DcMotorEx
-import com.qualcomm.robotcore.hardware.DcMotorSimple
-import com.qualcomm.robotcore.hardware.HardwareMap
-import com.qualcomm.robotcore.hardware.ServoImplEx
+import com.qualcomm.robotcore.hardware.*
 import org.futurerobotics.jargon.hardware.Servo as Servo1
 
 /**
@@ -65,9 +62,19 @@ data class ServoDoorConfig(
 
 fun <T> HardwareMap.tryGet(config: HardwareMapConfig<T>) = config.tryGetFrom(this)
 fun <T> HardwareMap.tryGetAll(list: List<HardwareMapConfig<T>>): List<T>? {
-    val result = ArrayList<T>(list.size)
-    list.forEach {
-        result += tryGet(it) ?: return null
+    return list.map {
+        tryGet(it) ?: return null
     }
-    return result
+}
+
+data class CRServoConfig(
+    val name: String,
+    val direction: DcMotorSimple.Direction
+) : HardwareMapConfig<CRServo> {
+
+    override fun tryGetFrom(map: HardwareMap): CRServo? {
+        return map.tryGet(CRServo::class.java, name)?.also {
+            it.direction = direction
+        }
+    }
 }

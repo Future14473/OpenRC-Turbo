@@ -1,6 +1,7 @@
 package org.firstinspires.ftc.teamcode.system.drive
 
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous
+import com.qualcomm.robotcore.eventloop.opmode.Disabled
 import com.qualcomm.robotcore.util.RobotLog
 import kotlinx.coroutines.*
 import org.firstinspires.ftc.teamcode.hardware.Hardware
@@ -18,17 +19,14 @@ import org.futurerobotics.jargon.pathing.graph.WaypointConstraint
 import org.futurerobotics.jargon.util.replaceIf
 import kotlin.math.PI
 
-//right now: loading side
-@Autonomous
-class AutoBeingTested
-@JvmOverloads constructor(
-    fieldSide: FieldSide = FieldSide.Blue
+//TODO: when we have time and it is not less than a day before the competition, clean up this horribly messy code
+abstract class AbstractAuto(
+    private val fieldSide: FieldSide = FieldSide.Blue
 ) : BotSystemsOpMode() {
 
     //    private val tracker = GraphTracker(graph, "start loading")
     private val pathFollower = DrivePathFollower(fieldSide, initialPose = startLoading, debug = true)
     private val hardware = Hardware()
-    //    private val skyStoneDetector = SkystoneDetector()
     private val intake = object {
         var power: Double = 0.0
             set(value) {
@@ -56,7 +54,7 @@ class AutoBeingTested
 //        skyStoneDetector,
         liftTarget,
         LiftController(),
-        Localizer(startLoading),
+        Localizer(startLoading.replaceIf(fieldSide.mirrored) { it.mirrored() }),
         DriveVelocityController(),
         DrivePositionController()
     )
@@ -93,7 +91,7 @@ class AutoBeingTested
         extension.targetAngle = 0.0
         rotater.targetAngle = 0.0
         waitForStart()
-        val skystoneLocation = Vector2d(-2 * tile - block - 3 * `in`, tile - 3 * `in`)
+        val skystoneLocation = skyStoneLocation()
         launch {
             delay(500)
             intake.power = 1.0
@@ -104,6 +102,10 @@ class AutoBeingTested
             Waypoint(skystoneLocation, direction = grabAngle, heading = grabAngle)
         )
         val grabPlace = Vector2d(1.7 * tile, 0.8 * tile)
+        launch {
+            delay(4000)
+            hardware.grabbers!!.forEach { it.close() }
+        }
         move(
             BotSide.Output,
             Waypoint(skystoneLocation, heading = grabAngle + PI),
@@ -112,7 +114,6 @@ class AutoBeingTested
         ).join()
         intake.power = 0.0
         hardware.claw!!.close()
-        hardware.grabbers!!.forEach { it.close() }
         val releaseJob = launch {
             delay(800)
             extension.targetAngle = OutputMechanism.extendMaxAngle
@@ -123,7 +124,7 @@ class AutoBeingTested
             delay(600)
             extension.targetAngle = 0.0
             delay(600)
-            liftTarget.liftHeight = 0.0
+            liftTarget.liftHeight = -2 * `in`
         }
         delay(1500)
         move(
@@ -132,8 +133,8 @@ class AutoBeingTested
             Waypoint(grabPlace + Vector2d(-.3 * tile, 0.0), direction = left, heading = left),
             Waypoint(1.6 * tile, 2.3 * tile, heading = down, direction = down)
         ).join()
-        delay(200)
         hardware.grabbers!!.forEach { it.open() }
+        delay(200)
         delay(400)
         releaseJob.join()
         move(
@@ -147,10 +148,14 @@ class AutoBeingTested
                 derivMagnitude = 1.0,
                 secondDeriv = Vector2d.ZERO
             ),
-            Waypoint(-0.2 * tile, 1.0 * tile, heading = down, direction = down)
+            Waypoint(-0.1 * tile, 1.2 * tile, heading = down, direction = down)
         ).join()
-        extension.targetAngle = 0.5
+        delay(1000)
+        requestOpModeStop()
+//        extension.targetAngle = 0.5
     }
+
+    protected abstract suspend fun skyStoneLocation(): Vector2d
 
     private fun updateGrabNode(skyStoneLocation: Vector2d) = graph.run {
         graph.getNodeOrNull("grab")?.let { graph.removeNode(it) }
@@ -206,7 +211,7 @@ class AutoBeingTested
     }
 }
 
-//todo add this officially
+//todo add these more officially
 private fun Waypoint.reverseDirection(): Waypoint {
     return Waypoint(position, constraint.reverseDirection())
 }
@@ -214,7 +219,33 @@ private fun Waypoint.reverseDirection(): Waypoint {
 private val preGrabOffset = Vector2d(8 * `in`, 8 * `in`)
 private val grabOffset =/* Vector2d.polar(robot / 3, grabAngle) -*/ Vector2d(0 * `in`, -7 * `in`)
 
-
 private fun Waypoint(pose: Pose2d): Waypoint {
     return Waypoint(pose.vec, heading = pose.heading)
+}
+
+private val shortCircuitSkystoneLocation = Vector2d(-2 * tile - block - 3 * `in`, tile - 3 * `in`)
+
+@Autonomous
+class BackupBlueLoadingAuto : AbstractAuto(FieldSide.Blue) {
+
+    override suspend fun skyStoneLocation(): Vector2d {
+        return shortCircuitSkystoneLocation
+    }
+}
+
+@Autonomous
+class BackupRedLoadingAuto : AbstractAuto(FieldSide.Red) {
+
+    override suspend fun skyStoneLocation(): Vector2d {
+        return shortCircuitSkystoneLocation
+    }
+}
+
+@Autonomous
+@Disabled
+class FancyBlueLoadingAuto : AbstractAuto(FieldSide.Blue) {
+
+    override suspend fun skyStoneLocation(): Vector2d {
+        TODO()
+    }
 }

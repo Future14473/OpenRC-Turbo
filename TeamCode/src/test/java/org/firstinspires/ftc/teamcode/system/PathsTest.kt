@@ -6,7 +6,7 @@ import org.junit.Test
 
 class PathsTest {
     @Test
-    fun test(){
+    fun test() {
 
         val path = Line(Vector2d.ZERO, Vector2d(1.0, 0.0)).addHeading(LinearlyInterpolatedHeading(0.0, 2.0))
         path.startPoint().pose

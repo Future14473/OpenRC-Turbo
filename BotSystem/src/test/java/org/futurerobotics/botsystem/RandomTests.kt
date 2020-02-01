@@ -83,7 +83,7 @@ internal class RandomTests {
                 return first
             }
 
-            val first = createJob{
+            val first = createJob {
                 println(1)
                 1
             }
@@ -109,7 +109,7 @@ internal class RandomTests {
     @Test
     fun awaitLazyParent() = runBlockingTest {
         val job = launch {
-            launch(start=CoroutineStart.LAZY) {
+            launch(start = CoroutineStart.LAZY) {
                 println("hey")
             }
         }

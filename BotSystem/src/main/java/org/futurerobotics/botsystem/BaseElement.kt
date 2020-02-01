@@ -60,7 +60,7 @@ abstract class BaseElement : Element {
 
     /** Declares additional dependencies on the given class */
     @JvmSynthetic
-    protected inline fun <reified T > dependsOn() {
+    protected inline fun <reified T> dependsOn() {
         dependsOn(T::class.java)
     }
 
@@ -102,7 +102,7 @@ abstract class BaseElement : Element {
     /** [dependency] for Kotlin */
     @UseExperimental(ExperimentalTypeInference::class)
     @JvmSynthetic
-    protected inline fun <reified T , R> dependency(@BuilderInference crossinline getValue: T.() -> R): Property<R> =
+    protected inline fun <reified T, R> dependency(@BuilderInference crossinline getValue: T.() -> R): Property<R> =
         dependency(T::class.java, getValue)
 
 

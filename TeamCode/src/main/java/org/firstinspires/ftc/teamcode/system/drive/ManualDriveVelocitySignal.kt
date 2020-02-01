@@ -24,9 +24,9 @@ class ManualDriveVelocitySignal
 ) : LoopElement(), DriveVelocitySignal {
 
     companion object {
-        const val maxAxisSpeed = 1.4 * m / s
+        const val maxAxisSpeed = 1.7 * m / s
         const val maxAngularSpeed = 140 * deg / s
-        const val slowSpeedMultiplier = 0.3
+        const val slowSpeedMultiplier = 0.2
     }
 
     private val controlLoop by loopOn<ControlLoop>()
@@ -69,12 +69,12 @@ class ManualDriveVelocitySignal
         val actualHeading = angle.angle
 
         val angularVelocity = -gamepad.left_stick_x * maxAngularSpeed
-        targetHeading += angularVelocity * controlLoop.elapsedSeconds
-        val headingVelocity =
-            headingController.update(targetHeading, actualHeading, controlLoop.elapsedNanos) + angularVelocity
+//        targetHeading += angularVelocity * controlLoop.elapsedSeconds
+//        val headingVelocity =
+//            headingController.update(targetHeading, actualHeading, controlLoop.elapsedNanos) + angularVelocity
 
         val targetVelocity =
-            Pose2d(vx, vy, headingVelocity) * speedMultiplier
+            Pose2d(vx, vy, angularVelocity) * speedMultiplier
 
         this.targetVelocity = MotionState(targetVelocity, Pose2d.ZERO, Pose2d.ZERO)
 

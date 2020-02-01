@@ -14,7 +14,6 @@ object DriveModel {
 
     init {
         val length = 18 * inches
-        //todo: make sure this is the real weight in the end
         val mass: Double = 34 * lbs
         val moi = 1.0 / 2 * mass * length.pow(2)
 

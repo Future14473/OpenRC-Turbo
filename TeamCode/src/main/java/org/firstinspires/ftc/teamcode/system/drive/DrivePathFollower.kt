@@ -50,7 +50,7 @@ class DrivePathFollower(
 
     @Volatile
     var targetState: MotionState<Pose2d> =
-        MotionState(initialPose.replaceIf(reversed) { it.mirror() }, Pose2d.ZERO, Pose2d.ZERO)
+        MotionState(initialPose.replaceIf(reversed) { it.mirrored() }, Pose2d.ZERO, Pose2d.ZERO)
         private set
 
     override fun init() {
@@ -61,7 +61,7 @@ class DrivePathFollower(
         motionProfileFollower.update(controlLoop.elapsedNanos)
         targetState = motionProfileFollower.output.let {
             if (reversed) {
-                it.map { p -> p.mirror() }
+                it.map { p -> p.mirrored() }
             } else it
         }
         if (debug) telemetry?.apply {
@@ -70,4 +70,4 @@ class DrivePathFollower(
     }
 }
 
-private fun Pose2d.mirror() = Pose2d(x, -y, -heading)
+fun Pose2d.mirrored() = Pose2d(x, -y, -heading)

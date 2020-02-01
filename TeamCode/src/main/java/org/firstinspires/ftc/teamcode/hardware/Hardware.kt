@@ -38,8 +38,9 @@ private val intakeConfigs = run {
 }
 //servos
 private val extensionConfigs = arrayOf(
-    RangedServoConfig("LinkageLeft", 0.81..0.34, 0.0..1.0), //1.0 == out
-    RangedServoConfig("LinkageRight", 0.31..0.78, 0.0..1.0)
+    RangedServoConfig("LinkageLeft", 0.59..0.0, 0.0..1.0)
+//    , //1.0 == out
+//    RangedServoConfig("LinkageRight", 0.31..0.78, 0.0..1.0)
 )
 private val rotaterConfig = RangedServoConfig("Rotater", 0.83..0.1, 0 * deg..180 * deg)
 
@@ -51,6 +52,8 @@ private val grabberConfigs = arrayOf(
     ServoDoorConfig("GrabberLeft", 0.71..0.25, true), //one using software,
     ServoDoorConfig("GrabberRight", 0.0..1.0, true) //the other one using limits. Wonderful.
 )
+
+private val tapeConfig = CRServoConfig("Tape", DcMotorSimple.Direction.REVERSE)
 
 class Hardware : BaseElement() {
 
@@ -86,4 +89,6 @@ class Hardware : BaseElement() {
     val dropper by dropperConfig.getOrNull()
 
     val grabbers by grabberConfigs.getAllOrNull()
+
+    val tape by tapeConfig.getOrNull()
 }

@@ -5,22 +5,20 @@ import org.firstinspires.ftc.teamcode.hardware.Hardware
 import org.firstinspires.ftc.teamcode.system.OutputMechanism.Companion.blockHeight
 import org.firstinspires.ftc.teamcode.system.OutputMechanism.Companion.delayGrabMillis
 import org.firstinspires.ftc.teamcode.system.OutputMechanism.Companion.delayReleaseMillis
-import org.firstinspires.ftc.teamcode.system.OutputMechanism.Companion.dropperReleaseMillis
+import org.firstinspires.ftc.teamcode.system.OutputMechanism.Companion.extendControlSpeed
+import org.firstinspires.ftc.teamcode.system.OutputMechanism.Companion.extendDefaultOut
 import org.firstinspires.ftc.teamcode.system.OutputMechanism.Companion.extendMaxAngle
-import org.firstinspires.ftc.teamcode.system.OutputMechanism.Companion.extendMaxSpeed
+import org.firstinspires.ftc.teamcode.system.OutputMechanism.Companion.extendMaxBeforeLower
 import org.firstinspires.ftc.teamcode.system.OutputMechanism.Companion.extendMinCanEmptyRotate
 import org.firstinspires.ftc.teamcode.system.OutputMechanism.Companion.extendMinCanRotate
-import org.firstinspires.ftc.teamcode.system.OutputMechanism.Companion.extendReady
+import org.firstinspires.ftc.teamcode.system.OutputMechanism.Companion.extendReadyToLift
 import org.firstinspires.ftc.teamcode.system.OutputMechanism.Companion.liftBeforeExtendTolerance
+import org.firstinspires.ftc.teamcode.system.OutputMechanism.Companion.liftCapstoneBeforeRetract
+import org.firstinspires.ftc.teamcode.system.OutputMechanism.Companion.liftControlSpeed
 import org.firstinspires.ftc.teamcode.system.OutputMechanism.Companion.liftMaxHeight
-import org.firstinspires.ftc.teamcode.system.OutputMechanism.Companion.liftMaxSpeed
 import org.firstinspires.ftc.teamcode.system.OutputMechanism.Companion.liftMinHeight
 import org.firstinspires.ftc.teamcode.system.OutputMechanism.Companion.liftReadyTolerance
 import org.firstinspires.ftc.teamcode.system.OutputMechanism.Companion.liftUpBeforeRetract
-import org.firstinspires.ftc.teamcode.system.OutputMechanism.Companion.retractBeforeLower
-import org.firstinspires.ftc.teamcode.system.OutputMechanism.Companion.rotationMax
-import org.firstinspires.ftc.teamcode.system.OutputMechanism.Companion.rotationMaxSpeed
-import org.firstinspires.ftc.teamcode.system.OutputMechanism.Companion.rotationMin
 import org.firstinspires.ftc.teamcode.tests.IntakeControl
 import org.futurerobotics.botsystem.SyncScope
 import org.futurerobotics.botsystem.SyncedElement
@@ -40,32 +38,34 @@ class OutputMechanism
 ) : SyncedElement(), LiftTarget {
 
     companion object {
-        const val blockHeight = 4 * `in`
+        //lift
+        const val blockHeight = 4.1 * `in`
 
         const val liftMaxHeight = 0.70 * meters //not decreasing by 1 cm
-        const val liftMaxSpeed = 0.35 * m / s
-        const val liftMinHeight = 1 * `in`
-        const val liftReadyTolerance = 2 * `in` //as in all the way down
-        const val liftBeforeExtendTolerance = 3 * `in`
+        const val liftMinHeight = 0.5 * `in`
 
+        const val liftReadyTolerance = 1 * `in` //as in all the way down
+        const val liftBeforeExtendTolerance = 2 * `in`
+
+        const val liftControlSpeed = 0.35 * m / s
+        //extend
         const val extendMaxAngle = 1.0
-        const val extendMaxSpeed = 0.8
-        const val extendReady = .4
 
-        const val extendMinCanRotate = .76 //with block
-        const val extendMinCanEmptyRotate = .6 //without block
-        //rotation
-        const val rotationMaxSpeed = 60 * deg / s
-        const val rotationMin = 60 * deg
-        const val rotationMax = 260 * deg
+        const val extendReadyToLift = 0.4
+        const val extendDefaultOut = 0.75
 
+        const val extendMinCanRotate = .75 //with block
+        const val extendMinCanEmptyRotate = .55 //without block
+
+        const val extendMaxBeforeLower = 0.2
+
+        const val extendControlSpeed = 0.6
         //release sequence
-        const val liftUpBeforeRetract = 4 * `in`
-        const val retractBeforeLower = .25
+        const val liftUpBeforeRetract = 5 * `in`
+        const val liftCapstoneBeforeRetract = 2 * `in`
         //waiting for claw
         const val delayGrabMillis = 250
-        const val delayReleaseMillis = 100
-        const val dropperReleaseMillis = 250
+        const val delayReleaseMillis = 50
     }
 
     // --- Signals ---
@@ -75,13 +75,12 @@ class OutputMechanism
 
     internal val extensionSignal get() = gamepad.right_stick_x
     internal val liftSignal get() = -gamepad.left_stick_y
-    internal val rotationSignal get() = -gamepad.left_stick_x
 
     internal val blockUpSignal get() = buttons.dpad_up.isClicked
     internal val blockDownSignal get() = buttons.dpad_down.isClicked
 
-    internal val to90Signal get() = buttons.a.isClicked
-    internal val to180Signal get() = buttons.b.isClicked
+    internal val toExtendSignal get() = buttons.b.isClicked
+    internal val to9001Signal get() = buttons.a.isClicked
     internal val retractSignal get() = buttons.x.isClicked
 
     internal val weAreAboutToWinTheCompetitionSignal get() = buttons.y.isClicked
@@ -110,10 +109,11 @@ class OutputMechanism
     @Volatile
     override var liftVelocity: Double = 0.0
     internal var liftHeightDeferred = 0.0
-    internal var rotaterTargetDeferred = 0.0
     //running
     internal lateinit var sync: SyncScope
         private set
+
+    internal var armStateDeferred = ArmStateDeferred.In
 
     internal var state = OutputStateMachine.Ready
 
@@ -123,6 +123,10 @@ class OutputMechanism
             state = with(state) { runState() }
         }
     }
+}
+
+internal enum class ArmStateDeferred {
+    In, Extended, Over9000
 }
 
 /**
@@ -139,74 +143,84 @@ internal enum class OutputStateMachine {
             liftHeight = 0.0
             liftVelocity = 0.0
             liftHeightDeferred = liftMinHeight
-            rotaterTargetDeferred = 0.0
+            armStateDeferred = ArmStateDeferred.In
             waitUntil {
-                ((lift.currentHeight <= liftReadyTolerance)
-                        and rotater.isAtTarget
-                        and extension.isAtTarget)
+                lift.currentHeight <= liftReadyTolerance &&
+                        rotater.isAtTarget &&
+                        extension.isAtTarget
             }
             var previousClosed = claw.isClosed
             loop {
                 if (!previousClosed && claw.isClosed) {
                     delay(delayGrabMillis)
-                    return In
+                    return Grab
                 }
                 previousClosed = claw.isClosed
             }
         }
     },
-    In { //Extension is in, only lift.
+    Grab { //Grab, but no lift.
         override suspend fun OutputMechanism.runState(): OutputStateMachine {
-            rotaterTargetDeferred = 0.0
-            rotater.targetAngle = 0.0
-            if (!rotater.isAtTarget)
-                extension.targetAngle = extendMinCanRotate
             loop {
-                if (releaseSignal && extension.targetAngle < extendReady) claw.open()
-                controlLift(liftSignal)
-                controlRotation()
-                if (rotaterTargetDeferred != 0.0
-                    && lift.currentHeight distTo liftHeight < liftBeforeExtendTolerance
-                ) return Out
-                if (rotater.isAtTarget) {
-                    extension.targetAngle = min(extension.targetAngle, extendReady)
-                    if (extension.currentAngle <= extendReady && weAreAboutToWinTheCompetitionSignal) {
-                        return to T posing
-                    }
-                }
+                if (releaseSignal && extension.targetAngle < extendReadyToLift) return Ready
+                controlLiftDeferred(liftSignal)
+                controlArmDeferred()
+                if (liftHeightDeferred > liftMinHeight || armStateDeferred != ArmStateDeferred.In)
+                    return In
+                if (weAreAboutToWinTheCompetitionSignal) dropper.open()
             }
         }
-
-        private val posing = 0
     },
-    Out { //Extension is out -- doing the stacking
+    In {
+        override suspend fun OutputMechanism.runState(): OutputStateMachine {
+            rotater.targetAngle = 0.0
+            extension.targetAngle = min(extension.targetAngle, extendMinCanRotate)
+            loop {
+                if (rotater.isAtTarget)
+                    extension.targetAngle = extendReadyToLift
+                controlLift(liftSignal)
+                controlArmDeferred()
+                if (lift.currentHeight distTo liftHeight <= liftBeforeExtendTolerance)
+                    when {
+                        armStateDeferred == ArmStateDeferred.Over9000 && dropper.isClosed -> return Over9000
+                        armStateDeferred == ArmStateDeferred.Extended -> return Extended
+                    }
+                if (weAreAboutToWinTheCompetitionSignal) dropper.open()
+            }
+        }
+    },
+    Extended { //Extension is out -- doing the stacking
+        override suspend fun OutputMechanism.runState(): OutputStateMachine {
+            extension.targetAngle = extendDefaultOut
+            rotater.targetAngle = 0.0
+            loop {
+                controlLift(liftSignal)
+                controlExtension(extensionSignal, extendReadyToLift..extendMaxAngle)
+                controlArmDeferred()
+                when {
+                    armStateDeferred == ArmStateDeferred.Over9000 && dropper.isClosed -> return Over9000
+                    armStateDeferred == ArmStateDeferred.In -> return In
+                }
+                if (extension.targetAngle >= extendReadyToLift && releaseSignal) return Release
+
+            }
+        }
+    },
+    Over9000 { //Extension is out -- doing the stacking
         override suspend fun OutputMechanism.runState(): OutputStateMachine {
             extension.targetAngle = extendMaxAngle
             loop {
                 controlLift(liftSignal)
                 controlExtension(extensionSignal, extendMinCanRotate..extendMaxAngle)
-                controlRotation()
-                if (extension.currentAngle >= extendMinCanRotate && rotaterTargetDeferred != 0.0) {
-                    rotater.targetAngle = rotaterTargetDeferred
+                controlArmDeferred()
+                if (extension.currentAngle >= extendMinCanRotate) rotater.targetAngle = 90 * deg
+                when (armStateDeferred) {
+                    ArmStateDeferred.In -> return In
+                    ArmStateDeferred.Extended -> return Extended
+                    ArmStateDeferred.Over9000 -> {
+                    }
                 }
-                if (retractSignal) return In
-                if (releaseSignal) return Release
-            }
-        }
-    },
-    StackCapstone {
-        override suspend fun OutputMechanism.runState(): OutputStateMachine {
-            dropper.open()
-            dropper.open()
-            delay(dropperReleaseMillis)
-            loop {
-                controlLift(liftSignal)
-                if (to90Signal || to180Signal) {
-                    extension.targetAngle = extendMaxAngle
-                } else if (retractSignal) {
-                    extension.targetAngle = extendReady
-                }
-                if (claw.isOpen && releaseSignal) return Release
+                if (extension.targetAngle >= extendMinCanRotate && releaseSignal) return Release
             }
         }
     },
@@ -217,17 +231,17 @@ internal enum class OutputStateMachine {
             delay(delayReleaseMillis)
             //raise lift
             liftHeight += liftUpBeforeRetract
+            if (dropper.isOpen)
+                liftHeight += liftCapstoneBeforeRetract
             waitUntil {
-                lift.currentHeight distTo liftHeight < 1 * `in`
+                lift.currentHeight distTo liftHeight < liftBeforeExtendTolerance
             }
-            val maxExtensionBeforeLower = extension.targetAngle - retractBeforeLower
-            extension.targetAngle = extendMinCanEmptyRotate
+            extension.targetAngle = min(extension.targetAngle, extendMinCanEmptyRotate)
             rotater.targetAngle = 0.0
             loop {
-                val lowering = extension.currentAngle <= maxExtensionBeforeLower
-                if (lowering) {
+                val lowering = extension.currentAngle <= extendMaxBeforeLower
+                if (lowering)
                     liftHeight = 0.0
-                }
                 if (rotater.isAtTarget) {
                     extension.targetAngle = 0.0
                     if (lowering) return Ready
@@ -235,12 +249,6 @@ internal enum class OutputStateMachine {
             }
         }
     };
-
-    @Suppress("ClassName", "NOTHING_TO_INLINE", "FunctionName", "UNUSED_PARAMETER")
-    private object to {
-
-        inline infix fun T(posing: Int) = StackCapstone
-    }
 
     private fun OutputMechanism.alwaysEachLoop() {
         if (grabSignal) claw.close()
@@ -251,36 +259,43 @@ internal enum class OutputStateMachine {
         power: Float,
         allowedRange: ClosedFloatingPointRange<Double>
     ) {
-        val delta = power * extendMaxSpeed * controlLoop.elapsedSeconds
+        val delta = power * extendControlSpeed * controlLoop.elapsedSeconds
         extension.targetAngle = (extension.targetAngle + delta).coerceIn(allowedRange)
-    }
-
-    protected fun OutputMechanism.controlRotation() {
-        if (to90Signal) rotaterTargetDeferred = 90 * deg
-        if (to180Signal) rotaterTargetDeferred = 180 * deg
-        if (rotationSignal != 0f) {
-            val delta = rotationSignal * rotationMaxSpeed * controlLoop.elapsedSeconds
-            rotaterTargetDeferred = (rotaterTargetDeferred + delta).coerceIn(rotationMin..rotationMax)
-        }
     }
 
     /** Lift control logic */
     fun OutputMechanism.controlLift(power: Float) {
-        val velocity = power * liftMaxSpeed
+        val velocity = controlLiftDeferred(power)
+        //only attempt to go forward enough when we can
+        if (liftHeightDeferred > liftMinHeight) {
+            extension.targetAngle = max(extension.targetAngle, extendReadyToLift)
+            if (extension.currentAngle >= extendReadyToLift) {
+                liftHeight = liftHeightDeferred
+                liftVelocity =
+                    if (liftHeight >= liftMaxHeight - blockHeight) 0.0
+                    else velocity
+            }
+        }
+    }
+
+    protected fun OutputMechanism.controlLiftDeferred(power: Float): Double {
+        val velocity = power * liftControlSpeed
         val delta = velocity * controlLoop.elapsedSeconds
 
         var height = liftHeightDeferred + delta
         if (blockUpSignal) height += blockHeight
         if (blockDownSignal) height -= blockHeight
         liftHeightDeferred = height.coerceIn(liftMinHeight, liftMaxHeight)
-        //only attempt to go forward enough when we need to
-        if (liftHeightDeferred > liftMinHeight || extension.targetAngle > 0) {
-            extension.targetAngle = max(extension.targetAngle, extendReady)
-            if (extension.currentAngle >= extendReady) { //only lift up if forward enough
-                liftHeight = liftHeightDeferred
-                liftVelocity = if (liftHeight >= liftMaxHeight - blockHeight) 0.0
-                else velocity
-            }
+        return velocity
+    }
+
+
+    protected fun OutputMechanism.controlArmDeferred() {
+        armStateDeferred = when {
+            retractSignal -> ArmStateDeferred.In
+            toExtendSignal -> ArmStateDeferred.Extended
+            to9001Signal -> ArmStateDeferred.Over9000
+            else -> return
         }
     }
 
