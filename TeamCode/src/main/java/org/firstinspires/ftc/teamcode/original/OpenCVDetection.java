@@ -21,9 +21,9 @@ import detectors.OpenCvDetector;
  */
 
 @TeleOp(name = "CV test", group = "Auto")
-public class OpenCVDetection extends OpMode {
+class OpenCVDetection extends OpMode {
 
-	OpenCvDetector fieldElementDetector;
+	private OpenCvDetector fieldElementDetector;
 
 	@Override
 	public void init() {

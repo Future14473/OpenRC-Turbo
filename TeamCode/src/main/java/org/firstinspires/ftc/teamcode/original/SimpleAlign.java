@@ -18,9 +18,9 @@ import detectors.OpenCvDetector;
 */
 
 @TeleOp(name = "CV Align", group = "Auto")
-public class SimpleAlign extends OpMode {
+class SimpleAlign extends OpMode {
 
-	OpenCvDetector fieldElementDetector;
+	private OpenCvDetector fieldElementDetector;
 
 	@Override
 	public void init() {
@@ -57,11 +57,11 @@ public class SimpleAlign extends OpMode {
 		SkyStone[] elements = fieldElementDetector.getSkyStones();
 
 		//Array will be empty if nothing is detected
-		if(elements.length == 0) {
+		if (elements.length == 0) {
 			telemetry.addLine("Nothing found");
 		} else {
 			xpos = (int) elements[0].x;
-			telemetry.addData("Position",xpos);
+			telemetry.addData("Position", xpos);
 			moveRobot(xpos);
 		}
 
@@ -70,20 +70,20 @@ public class SimpleAlign extends OpMode {
 
 	private void moveRobot(int xpos) {
 		//The center of the screen has x value of 320
-		int difference = xpos-320;
+		int difference = xpos - 320;
 
 		//75 pixels ought to be close enough
-		if(Math.abs(difference) < 75) {
+		if (Math.abs(difference) < 75) {
 			telemetry.addLine("Aligned to SkyStone!");
 			return;
 		}
 
 		if (difference > 0) {
 			//Strafe right
-			telemetry.addData("Moving","Right");
+			telemetry.addData("Moving", "Right");
 		} else {
 			//Strafe Left
-			telemetry.addData("Moving","Left");
+			telemetry.addData("Moving", "Left");
 		}
 	}
 

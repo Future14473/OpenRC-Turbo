@@ -17,7 +17,7 @@ public class SkyStone extends Stone implements Comparable<SkyStone> {
 		isBastard = false;
 		if (length < 0.4 || Properlength > 25) isBastard = true;
 
-		if (size < 300) isBastard = true;
+		if (size < 1000) isBastard = true;
 
 		RotatedRect rr = Imgproc.minAreaRect(compute.toDouble(shape));
 		Size s = rr.size;
@@ -38,6 +38,6 @@ public class SkyStone extends Stone implements Comparable<SkyStone> {
 
 	@Override
 	public int compareTo(SkyStone o) {
-		return Double.compare(size, o.size);
+		return Double.compare(o.size, size);
 	}
 }

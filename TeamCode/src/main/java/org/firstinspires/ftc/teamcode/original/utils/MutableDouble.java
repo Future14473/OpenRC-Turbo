@@ -1,25 +1,25 @@
 package org.firstinspires.ftc.teamcode.original.utils;
 
 public class MutableDouble {
-	double me = 0;
+	private double me = 0;
 
-	public MutableDouble (double d){
+	public MutableDouble(double d) {
 		me = d;
 	}
 
-	public void increment (double d){
-		me+=d;
+	public void increment(double d) {
+		me += d;
 	}
 
-	public double get(){
-		return  me;
+	public double get() {
+		return me;
 	}
 
-	public void set(double d){
+	public void set(double d) {
 		me = d;
 	}
 
-	public int getInt(){
-		return (int)me;
+	public int getInt() {
+		return (int) me;
 	}
 }

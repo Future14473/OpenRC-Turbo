@@ -1,23 +1,20 @@
-package org.firstinspires.ftc.teamcode.original.BotSys;
+package org.firstinspires.ftc.teamcode.original.botsys;
 
-import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 
-import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
-
-public class drivetrain {
-	DcMotorEx frontLeft;
-	DcMotorEx backLeft;
-	DcMotorEx frontRight;
-	DcMotorEx backRight;
+public class Drivetrain {
+	private DcMotorEx frontLeft;
+	private DcMotorEx backLeft;
+	private DcMotorEx frontRight;
+	private DcMotorEx backRight;
 
 	public float power = 1;
 
-	public drivetrain (DcMotorEx fL, DcMotorEx fR, DcMotorEx rL, DcMotorEx rR){
+	public Drivetrain(DcMotorEx fL, DcMotorEx fR, DcMotorEx rL, DcMotorEx rR) {
 		frontLeft = fL;
 		backLeft = rL;
-		frontRight =fR;
+		frontRight = fR;
 		backRight = rR;
 
 //		frontLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
@@ -29,17 +26,17 @@ public class drivetrain {
 		backRight.setDirection(DcMotorSimple.Direction.REVERSE);
 	}
 
-	public void move (double x, double y, double rot) {
+	public void move(double x, double y, double rot) {
 		rot *= -1;
 		//set powers
 		double frontLeft = (y + rot - x);
-		double backLeft  = (y + rot + x);
-		double frontRight= (y - rot + x);
+		double backLeft = (y + rot + x);
+		double frontRight = (y - rot + x);
 		double backRight = (y - rot - x);
 
 		//normalize
 		double max = Math.max(Math.max(frontLeft, frontRight), Math.max(backLeft, backRight));
-		double regulationFactor = (max > 1) ? 1/max : 1;
+		double regulationFactor = (max > 1) ? 1 / max : 1;
 
 		//apply normalization
 		frontLeft *= regulationFactor;
@@ -47,32 +44,32 @@ public class drivetrain {
 		backLeft *= regulationFactor;
 		backRight *= regulationFactor;
 
-		this.frontLeft.setVelocity(frontLeft*1120*power);
-		this.frontRight.setVelocity(frontRight*1120*power);
-		this.backLeft.setVelocity(backLeft*1120*power);
-		this.backRight.setVelocity(backRight*1120*power);
+		this.frontLeft.setVelocity(frontLeft * 1120 * power);
+		this.frontRight.setVelocity(frontRight * 1120 * power);
+		this.backLeft.setVelocity(backLeft * 1120 * power);
+		this.backRight.setVelocity(backRight * 1120 * power);
 	}
 
-	public double movementUnits(){
-		return  frontLeft.getCurrentPosition() +
-				frontRight.getCurrentPosition()+
-				backLeft.getCurrentPosition()  +
+	private double movementUnits() {
+		return frontLeft.getCurrentPosition() +
+				frontRight.getCurrentPosition() +
+				backLeft.getCurrentPosition() +
 				backRight.getCurrentPosition();
 	}
 
-	public void waitDeltaMovementUnits(int num){
+	public void waitDeltaMovementUnits(int num) {
 		double begin = movementUnits();
 
-		while(Math.abs(movementUnits()-begin) < num){
+		while (Math.abs(movementUnits() - begin) < num) {
 			//wait
 		}
 	}
 
-	public void rotateDegrees (float degs, imu imu) {
+	public void rotateDegrees(float degs, Imu imu) {
 		float startDeg = imu.heading();
 
 		while (Math.abs(degs - (imu.heading() - startDeg)) > 10) {
-			move(0, 0 ,((imu.heading() - startDeg) - degs) / 100f);
+			move(0, 0, ((imu.heading() - startDeg) - degs) / 100f);
 		}
 	}
 }

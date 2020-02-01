@@ -1,4 +1,4 @@
-package org.firstinspires.ftc.teamcode.original.BotSys;
+package org.firstinspires.ftc.teamcode.original.botsys;
 
 import com.qualcomm.robotcore.hardware.Servo;
 
@@ -6,22 +6,21 @@ import org.firstinspires.ftc.teamcode.original.utils.Calc;
 
 import java.util.Arrays;
 
-public class spinMechSmall  implements spinMech{
-	Servo[] allMotors;
-	public float currentPos = 0;
+public class SpinMechSmall implements SpinMech {
+	private Servo[] allMotors;
+	private float   currentPos = 0;
+
 	/**
 	 * Close is LESS; open is MORE
-	 * @param openPos
-	 * @param closePos
-	 * @param motors
 	 */
-	public spinMechSmall(float openPos, float closePos, Servo... motors){
+	public SpinMechSmall(float openPos, float closePos, Servo... motors) {
 		allMotors = motors;
 		allMotors = Calc.removeNulls(allMotors);
 		Arrays.stream(allMotors).forEach(motor -> motor.scaleRange(
-				closePos<openPos?closePos:openPos,
-				openPos>closePos?openPos:closePos));
+				closePos < openPos ? closePos : openPos,
+				openPos > closePos ? openPos : closePos));
 	}
+
 	/**
 	 * Note: open is more value
 	 */
@@ -48,13 +47,8 @@ public class spinMechSmall  implements spinMech{
 		//no lol
 	}
 
-	public void stop(){
+	public void stop() {
 
-	}
-
-	@Override
-	public void setPower(float pwr) {
-		//none lol
 	}
 
 	@Override
@@ -65,7 +59,7 @@ public class spinMechSmall  implements spinMech{
 		});
 	}
 
-	public float getPos(){
+	public float getPos() {
 		return currentPos;
 	}
 }

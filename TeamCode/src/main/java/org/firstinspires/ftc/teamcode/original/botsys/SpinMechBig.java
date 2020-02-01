@@ -1,27 +1,23 @@
-package org.firstinspires.ftc.teamcode.original.BotSys;
+package org.firstinspires.ftc.teamcode.original.botsys;
 
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
-import com.qualcomm.robotcore.hardware.DcMotorSimple;
 
-import org.firstinspires.ftc.teamcode.original.MainTeleOp;
 import org.firstinspires.ftc.teamcode.original.utils.MutableDouble;
 
-import java.lang.reflect.Array;
 import java.util.Arrays;
-import java.util.concurrent.atomic.AtomicBoolean;
 
-public class spinMechBig implements spinMech{
-	float power = 1;
-	DcMotorEx[] allMotors;
-	int lowerBound;
-	int higherBound;
+public class SpinMechBig implements SpinMech {
+	private float       power = 1;
+	private DcMotorEx[] allMotors;
+	private int         lowerBound;
+	private int         higherBound;
 
-	public spinMechBig(DcMotorEx... motors){
+	public SpinMechBig(DcMotorEx... motors) {
 		this(Integer.MIN_VALUE, Integer.MAX_VALUE, motors);
 	}
 
-	public spinMechBig(int lowerBound, int higherBound,DcMotorEx... motors){
+	private SpinMechBig(int lowerBound, int higherBound, DcMotorEx... motors) {
 		allMotors = motors;
 		this.lowerBound = lowerBound;
 		this.higherBound = higherBound;
@@ -42,14 +38,13 @@ public class spinMechBig implements spinMech{
 	}
 
 
-
 	@Override
 	public void spinOpen() {
 		Arrays.stream(allMotors).forEach(motor -> {
 			motor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
 			motor.setPower(power);
 		});
-				//(motor.getCurrentPosition()<higherBound)?1:0));
+		//(motor.getCurrentPosition()<higherBound)?1:0));
 	}
 
 	@Override
@@ -58,15 +53,11 @@ public class spinMechBig implements spinMech{
 			motor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
 			motor.setPower(-power);
 		});
-				//(motor.getCurrentPosition()>lowerBound)?-1:0));
+		//(motor.getCurrentPosition()>lowerBound)?-1:0));
 	}
 
-	public void stop(){
+	public void stop() {
 		Arrays.stream(allMotors).forEach(motor -> motor.setPower(0));
-	}
-
-	public void setPower(float pwr){
-		power = pwr;
 	}
 
 	@Override
@@ -74,9 +65,9 @@ public class spinMechBig implements spinMech{
 
 	}
 
-	public float getPos( ){
+	public float getPos() {
 		MutableDouble sum = new MutableDouble(0);
 		Arrays.stream(allMotors).forEach(motor -> sum.increment(motor.getCurrentPosition()));
-		return (float) (sum.get()/allMotors.length);
+		return (float) (sum.get() / allMotors.length);
 	}
 }

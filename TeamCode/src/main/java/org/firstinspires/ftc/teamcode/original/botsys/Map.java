@@ -1,4 +1,4 @@
-package org.firstinspires.ftc.teamcode.original.BotSys;
+package org.firstinspires.ftc.teamcode.original.botsys;
 
 import com.qualcomm.hardware.bosch.BNO055IMU;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
@@ -6,7 +6,7 @@ import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.Servo;
 
-public class map {
+public class Map {
 	DcMotorEx frontLeft;
 	DcMotorEx backLeft;
 	DcMotorEx frontRight;
@@ -32,7 +32,7 @@ public class map {
 	public
 	BNO055IMU imu;
 
-	public map(HardwareMap hardwaremap){
+	public Map(HardwareMap hardwaremap) {
 		//TODO
 		frontLeft = hardwaremap.get(DcMotorEx.class, "FrontLeft");
 		frontRight = hardwaremap.get(DcMotorEx.class, "FrontRight");

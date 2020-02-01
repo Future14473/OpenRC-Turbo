@@ -16,7 +16,7 @@ public class Stone {
     MatOfPoint shape;
     boolean    isBastard = false;
     Rect       bounds;
-	double     size;
+	public double     size;
 
     public Stone(MatOfPoint shape) {
         bounds = Imgproc.boundingRect(shape);

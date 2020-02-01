@@ -11,9 +11,9 @@ class BotSystemTest {
     fun runIt() {
         DebugProbes.install()
         val system = BotSystem(
-            DependsOn(Dependency1::class),
-            LoopAFewTimes(),
-            Receive()
+                DependsOn(Dependency1::class),
+                LoopAFewTimes(),
+                Receive()
         )
         val launchJob = GlobalScope.launch {
             system.initSuspend()
