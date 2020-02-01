@@ -9,5 +9,9 @@ public interface spinMech {
 
 	public void stop();
 
+	public void setPosition(float pos);
+
 	public void setPower(float pwr);
+
+	public float getPos( );
 }

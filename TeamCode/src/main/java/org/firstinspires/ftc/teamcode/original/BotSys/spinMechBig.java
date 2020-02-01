@@ -5,6 +5,7 @@ import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 
 import org.firstinspires.ftc.teamcode.original.MainTeleOp;
+import org.firstinspires.ftc.teamcode.original.utils.MutableDouble;
 
 import java.lang.reflect.Array;
 import java.util.Arrays;
@@ -46,7 +47,7 @@ public class spinMechBig implements spinMech{
 	public void spinOpen() {
 		Arrays.stream(allMotors).forEach(motor -> {
 			motor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-			motor.setVelocity(power*1120);
+			motor.setPower(power);
 		});
 				//(motor.getCurrentPosition()<higherBound)?1:0));
 	}
@@ -55,7 +56,7 @@ public class spinMechBig implements spinMech{
 	public void spinClose() {
 		Arrays.stream(allMotors).forEach(motor -> {
 			motor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-			motor.setVelocity(-power*1120);
+			motor.setPower(-power);
 		});
 				//(motor.getCurrentPosition()>lowerBound)?-1:0));
 	}
@@ -66,5 +67,16 @@ public class spinMechBig implements spinMech{
 
 	public void setPower(float pwr){
 		power = pwr;
+	}
+
+	@Override
+	public void setPosition(float pos) {
+
+	}
+
+	public float getPos( ){
+		MutableDouble sum = new MutableDouble(0);
+		Arrays.stream(allMotors).forEach(motor -> sum.increment(motor.getCurrentPosition()));
+		return (float) (sum.get()/allMotors.length);
 	}
 }

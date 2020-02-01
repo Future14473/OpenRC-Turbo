@@ -6,9 +6,18 @@ import org.firstinspires.ftc.teamcode.original.MainTeleOp;
 
 public class robot {
 	//TODO
-	drivetrain drivetrain;
+	public drivetrain drivetrain;
+
 	public spinMech lift;
+	boolean liftArrived = false;
+
+	public spinMech extendoMagicko;
 	spinMech intake;
+	spinMech spin;
+	public spinMech grab;
+	spinMech gate;
+	spinMech foundationL;
+	spinMech foundationR;
 
 	map hardwareMap;
 
@@ -18,13 +27,20 @@ public class robot {
 									hardwareMap.frontRight,
 									hardwareMap.backLeft,
 									hardwareMap.backRight);
-		lift = new spinMechBig(0,500, hardwareMap.liftLeft, hardwareMap.liftRight);
+		lift = new spinMechBig(hardwareMap.liftLeft, hardwareMap.liftRight);
 		intake = new spinMechBig(hardwareMap.intakeLeft, hardwareMap.intakeRight);
-		lift.setPower(0.1f);
+		spin = new spinMechSmall(0,1,hardwareMap.spin);
+		grab = new spinMechSmall(0,1,hardwareMap.grab);
+		gate = new spinMechSmall(0,1,hardwareMap.gate);
+		foundationL = new spinMechSmall(0,1,hardwareMap.foundationLeft);
+		foundationR = new spinMechSmall(0,1,hardwareMap.foundationRight);
+
+		//0.3 is out, 0.9 is in
+		extendoMagicko = new spinMechSmall(0.0f,0.9f,hardwareMap.extendLeft,hardwareMap.extendRight);
 		//TODO
 	}
 
-	public void liftPower(float target){
+	public void moveToTarget(float target){
 		hardwareMap.liftRight.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
 		hardwareMap.liftLeft.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
 
@@ -32,32 +48,32 @@ public class robot {
 		if(leftDiff > 20) {
 
 			if (hardwareMap.liftLeft.getCurrentPosition() > -target) {
-				hardwareMap.liftLeft.setPower(leftDiff/500f+0.1);
-				MainTeleOp.telemetry.addData("left PWR","UP");
+				hardwareMap.liftLeft.setPower(leftDiff/700f+0.3);
 
 			}
 			if (hardwareMap.liftLeft.getCurrentPosition() < -target) {
-				hardwareMap.liftLeft.setPower(-(leftDiff/700f));
-				MainTeleOp.telemetry.addData("left PWR","DOWN");
+				float intendedPwr = -(leftDiff/700f);
+				hardwareMap.liftLeft.setPower(intendedPwr<-0.5?-0.5:intendedPwr);
 			}
-
+			liftArrived = false;
 		}
 
 		float rightDiff = Math.abs(hardwareMap.liftRight.getCurrentPosition()-target);
 		if(rightDiff > 20){
 			if (hardwareMap.liftRight.getCurrentPosition()<target){
-				hardwareMap.liftRight.setPower(rightDiff/500f+0.1);
-
-			}else if (hardwareMap.liftRight.getCurrentPosition()>target){
-				hardwareMap.liftRight.setPower(-(rightDiff/700f));
-
-			}else {
-				hardwareMap.liftRight.setPower(0);
+				hardwareMap.liftRight.setPower(rightDiff/700f+0.3);
 
 			}
-		}else{
+			if (hardwareMap.liftRight.getCurrentPosition()>target){
+				float intendedPwr = -(rightDiff/700f);
+				hardwareMap.liftRight.setPower(intendedPwr<-0.5?-0.5:intendedPwr);
+			}
+			liftArrived = false;
+		}
+		if(leftDiff < 20 && rightDiff < 20) {
 			hardwareMap.liftLeft.setPower(0);
 			hardwareMap.liftRight.setPower(0);
+			liftArrived = true;
 		}
 
 		MainTeleOp.telemetry.addData("liftleft diff",leftDiff);
@@ -70,12 +86,11 @@ public class robot {
 	}
 
 	public void intakeIn(){
-
-		intake.spinClose();
+		intake.spinOpen();
 	}
 
 	public void intakeOut(){
-		intake.spinOpen();
+		intake.spinClose();
 	}
 
 	public void intakeStop(){
@@ -88,5 +103,53 @@ public class robot {
 		if(Math.abs(rot)<0.15) rot=0;
 
 		drivetrain.move(x, y, rot);
+	}
+
+	public void spinRest(){
+		spin.setPosition(0.837f);
+	}
+	public void spinMiddle(){
+		spin.setPosition(0.473f);
+	}
+
+	public void spinOut(){
+		spin.setPosition(0.108f);
+	}
+
+	public void grabClose () {
+		grab.setPosition(0.75f);
+	}
+
+	public void grabOpen () {
+		grab.setPosition(0.35f);
+	}
+
+	public void gateClose() {
+		gate.setPosition(1);
+	}
+
+	public void gateOpen() {
+		gate.setPosition(0);
+	}
+
+	public void foundationRest() {
+		foundationL.setPosition(0);
+		foundationR.setPosition(1);
+	}
+
+	public void foundationEngage() {
+		foundationL.setPosition(1);
+		foundationR.setPosition(0);
+	}
+
+	public boolean liftArrived(){
+		return liftArrived;
+	}
+
+	public void extend(){
+		extendoMagicko.close();
+	}
+	public void deExtend(){
+		extendoMagicko.open();
 	}
 }

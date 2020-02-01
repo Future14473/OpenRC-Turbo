@@ -9,6 +9,7 @@ import org.opencv.android.Utils;
 import org.opencv.core.Core;
 import org.opencv.core.CvType;
 import org.opencv.core.Mat;
+import org.opencv.core.Point;
 import org.openftc.easyopencv.OpenCvCamera;
 import org.openftc.easyopencv.OpenCvCameraFactory;
 import org.openftc.easyopencv.OpenCvCameraRotation;
@@ -102,5 +103,19 @@ public class OpenCvDetector extends StartStoppable {
 		if (!activated) throw new IllegalStateException("Not activated");
 
 		return Pipeline.skyStones.toArray(new SkyStone[0]);
+	}
+
+	public Point[] getSkyStonesPoint() {
+		if (!activated) throw new IllegalStateException("Not activated");
+
+		List<SkyStone> stones = Pipeline.skyStones;
+		Point[] points = new Point[stones.size()];
+
+		int i= 0;
+		for(SkyStone s : stones) {
+			points[i] = new Point(s.x, s.y);
+			i++;
+		}
+		return points;
 	}
 }

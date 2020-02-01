@@ -28,7 +28,7 @@ public class Stone {
         	isBastard = true;
         
         this.shape = shape;
-        
+
         Point centerPoint = center(bounds);
         this.x = centerPoint.x;
         this.y = centerPoint.y;

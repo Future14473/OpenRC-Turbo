@@ -12,6 +12,8 @@ public class drivetrain {
 	DcMotorEx frontRight;
 	DcMotorEx backRight;
 
+	public float power = 1;
+
 	public drivetrain (DcMotorEx fL, DcMotorEx fR, DcMotorEx rL, DcMotorEx rR){
 		frontLeft = fL;
 		backLeft = rL;
@@ -28,6 +30,7 @@ public class drivetrain {
 	}
 
 	public void move (double x, double y, double rot) {
+		rot *= -1;
 		//set powers
 		double frontLeft = (y + rot - x);
 		double backLeft  = (y + rot + x);
@@ -44,10 +47,10 @@ public class drivetrain {
 		backLeft *= regulationFactor;
 		backRight *= regulationFactor;
 
-		this.frontLeft.setPower(frontLeft);
-		this.frontRight.setPower(frontRight);
-		this.backLeft.setPower(backLeft);
-		this.backRight.setPower(backRight);
+		this.frontLeft.setVelocity(frontLeft*1120*power);
+		this.frontRight.setVelocity(frontRight*1120*power);
+		this.backLeft.setVelocity(backLeft*1120*power);
+		this.backRight.setVelocity(backRight*1120*power);
 	}
 
 	public double movementUnits(){
@@ -62,6 +65,14 @@ public class drivetrain {
 
 		while(Math.abs(movementUnits()-begin) < num){
 			//wait
+		}
+	}
+
+	public void rotateDegrees (float degs, imu imu) {
+		float startDeg = imu.heading();
+
+		while (Math.abs(degs - (imu.heading() - startDeg)) > 10) {
+			move(0, 0 ,((imu.heading() - startDeg) - degs) / 100f);
 		}
 	}
 }

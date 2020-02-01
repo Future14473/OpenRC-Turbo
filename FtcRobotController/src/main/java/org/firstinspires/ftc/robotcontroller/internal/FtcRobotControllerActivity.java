@@ -128,13 +128,8 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 @SuppressWarnings("WeakerAccess")
 public class FtcRobotControllerActivity extends Activity {
   private final float CHECK_MEMORY_FREQ_SECONDS = 0.5f;
-	public static final float LOW_MEMORY_THRESHOLD_PERCENT = 30.0f; // Available %
-  private Handler memoryHandler_;
 
   public static final String TAG = "RCActivity";
-  static public long used;
-  static public long total;
-  static public float PercentAvailable;
 
 	public String getTag() { return TAG; }
 
@@ -269,9 +264,6 @@ public class FtcRobotControllerActivity extends Activity {
     if (enforcePermissionValidator()) {
       return;
     }
-
-    memoryHandler_ = new Handler();
-    checkAppMemory();
 
     RobotLog.onApplicationStart();  // robustify against onCreate() following onDestroy() but using the same app instance, which apparently does happen
     RobotLog.vv(TAG, "onCreate()");
@@ -819,22 +811,5 @@ public class FtcRobotControllerActivity extends Activity {
       wifiMuteStateMachine.consumeEvent(WifiMuteEvent.USER_ACTIVITY);
     }
   }
-
-    public void checkAppMemory(){
-	    //Log.d("MEMORY","           ");
-      // Get app memory info
-       used = Debug.getNativeHeapAllocatedSize();
-       total = Debug.getNativeHeapSize();
-
-      //Log.d("MEMORY",String.valueOf((used*1.0)/total));
-
-      // Check for & and handle low memory state
-       PercentAvailable = 100f * (1f - ((float) used / total ));
-
-      // Repeat after a delay
-      memoryHandler_.postDelayed( new Runnable(){ public void run() {
-        checkAppMemory();
-      }}, (int)(CHECK_MEMORY_FREQ_SECONDS * 1000) );
-    }
 
 }

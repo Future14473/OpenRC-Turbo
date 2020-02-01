@@ -2,27 +2,32 @@ package org.firstinspires.ftc.teamcode.original.BotSys;
 
 import com.qualcomm.robotcore.hardware.Servo;
 
+import org.firstinspires.ftc.teamcode.original.utils.Calc;
+
 import java.util.Arrays;
 
 public class spinMechSmall  implements spinMech{
 	Servo[] allMotors;
-
+	public float currentPos = 0;
 	/**
 	 * Close is LESS; open is MORE
 	 * @param openPos
 	 * @param closePos
 	 * @param motors
 	 */
-	public spinMechSmall(int openPos, int closePos, Servo... motors){
+	public spinMechSmall(float openPos, float closePos, Servo... motors){
 		allMotors = motors;
-		Arrays.stream(allMotors).forEach(motor -> motor.scaleRange(closePos, openPos));
+		allMotors = Calc.removeNulls(allMotors);
+		Arrays.stream(allMotors).forEach(motor -> motor.scaleRange(
+				closePos<openPos?closePos:openPos,
+				openPos>closePos?openPos:closePos));
 	}
 	/**
 	 * Note: open is more value
 	 */
 	@Override
 	public void open() {
-		Arrays.stream(allMotors).forEach(motor -> motor.setPosition(1));
+		setPosition(1);
 	}
 
 	/**
@@ -30,7 +35,7 @@ public class spinMechSmall  implements spinMech{
 	 */
 	@Override
 	public void close() {
-		Arrays.stream(allMotors).forEach(motor -> motor.setPosition(0));
+		setPosition(0);
 	}
 
 	@Override
@@ -50,5 +55,17 @@ public class spinMechSmall  implements spinMech{
 	@Override
 	public void setPower(float pwr) {
 		//none lol
+	}
+
+	@Override
+	public void setPosition(float pos) {
+		Arrays.stream(allMotors).forEach(motor -> {
+			motor.setPosition(pos);
+			currentPos = pos;
+		});
+	}
+
+	public float getPos(){
+		return currentPos;
 	}
 }
