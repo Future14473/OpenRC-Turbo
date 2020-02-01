@@ -16,6 +16,7 @@ public class Stone {
     MatOfPoint shape;
     boolean    isBastard = false;
     Rect       bounds;
+	public double     size;
 
     public Stone(MatOfPoint shape) {
         bounds = Imgproc.boundingRect(shape);
@@ -24,11 +25,11 @@ public class Stone {
         
         if (length < 1)
             isBastard = true; //We only like the long ones. The short ones will be disposed of
-        if(Imgproc.contourArea(shape)<70)
+        if((size = Imgproc.contourArea(shape))<70)
         	isBastard = true;
         
         this.shape = shape;
-        
+
         Point centerPoint = center(bounds);
         this.x = centerPoint.x;
         this.y = centerPoint.y;

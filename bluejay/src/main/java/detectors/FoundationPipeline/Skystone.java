@@ -10,18 +10,20 @@ import org.opencv.imgproc.Imgproc;
 
 import java.util.Arrays;
 
-public class Skystone extends Stone {
+public class SkyStone extends Stone implements Comparable<SkyStone> {
 
-	public Skystone(MatOfPoint shape) {
+	public SkyStone(MatOfPoint shape) {
 		super(shape);
 		isBastard = false;
-		if(length<0.4 || Properlength>25)isBastard = true;
-		
+		if (length < 0.4 || Properlength > 25) isBastard = true;
+
+		if (size < 1000) isBastard = true;
+
 		RotatedRect rr = Imgproc.minAreaRect(compute.toDouble(shape));
 		Size s = rr.size;
-		double ratio = Imgproc.contourArea(shape)/(s.width*s.height);
+		double ratio = Imgproc.contourArea(shape) / (s.width * s.height);
 		//System.out.println(ratio);
-		if(ratio<0.75) isBastard=true;
+		if (ratio < 0.4) isBastard = true;
 	}
 
 	public void draw(Mat canvas) {
@@ -34,4 +36,8 @@ public class Skystone extends Stone {
 		Imgproc.circle(canvas, new Point(x, y), 4, new Scalar(255, 255, 255), -1);
 	}
 
+	@Override
+	public int compareTo(SkyStone o) {
+		return Double.compare(o.size, size);
+	}
 }

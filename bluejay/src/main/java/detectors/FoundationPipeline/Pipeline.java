@@ -1,7 +1,7 @@
 package detectors.FoundationPipeline;
 
+import android.os.Debug;
 import android.util.Log;
-import org.firstinspires.ftc.robotcontroller.internal.FtcRobotControllerActivity;
 import org.opencv.core.*;
 import org.opencv.imgproc.Imgproc;
 
@@ -11,47 +11,63 @@ import java.util.List;
 public class Pipeline {
 	
 	private static final int regionSideClipExtensionLength = 120; //120
-	public volatile static List<Foundation> foundations = new ArrayList<>();
+	
 	public volatile static List<Stone> stones = new ArrayList<>();
-	public volatile static List<Skystone> skystones = new ArrayList<>();
-	public static boolean doFoundations = false;
+	
+	public volatile static List<Foundation> foundations = new ArrayList<>();
+	public volatile static List<SkyStone> skyStones = new ArrayList<>();
 	public static boolean doStones = false;
 	public static boolean doSkyStones = true;
+	
+	public static boolean doFoundations = false;
 	private static Mat resizedImage = MatAllocator.getMat("resizedImage");
 	private static int blackcut = 0;
 	
 	public static Mat process(Mat source0) {
 		Log.d("DATA IN", source0.width() + " " + source0.height() + " " + source0.channels());
 		
-		if (FtcRobotControllerActivity.pctAvailable < FtcRobotControllerActivity.LOW_MEMORY_THRESHOLD_PERCENT) {
+		//Garbage Collection
+		double used = Debug.getNativeHeapAllocatedSize();
+		double total = Debug.getNativeHeapSize();
+		double PercentAvailable = 100f * (1f - ((float) used / total));
+		if (PercentAvailable < 30) {
 			System.gc();
 			Log.d("MEM ____________", "CLEAR - - - - - - ");
 		}
+		
+		//Native Recycle
 		MatAllocator.emptyAll();
 		
-		//compute.clockwise(source0);
+		//Rotate
+		Mat flip = new Mat(480, 640, source0.type());
+		Core.transpose(source0, flip);
+		Core.flip(flip, flip, 1);
 		
-		Mat out = processInternal(source0);
+		//Process image
+		Mat out = processInternal(flip);
 		
-		//compute.counterCLockwise(source0);
+		//Rotate Back
+		Mat ret = new Mat(640, 480, out.type());
+		Core.transpose(out, ret);
+		Core.flip(ret, ret, 0);
 		
-		Log.d("DATA OUT", out.width() + " " + out.height() + " " + out.channels());
+		Log.d("DATA OUT", ret.width() + " " + ret.height() + " " + ret.channels());
 		
-		return out;
+		return ret;
 	}
-	
+
 	/**
 	 * Give it the raw image and it will update the Foundations arraylist
 	 *
 	 * @return source image with annotations on it
 	 */
 	private static Mat processInternal(Mat source0) {
-		
+
 		resizedImage = source0;
 		//compute.whiteBalance(resizedImage, 1.15,0.9);
 		Mat equalizedImage = compute.equalize(resizedImage);
 		Mat original = resizedImage.clone();
-		
+
 		//set ranges
 		double blackCutOff = compute.getHistogramfast(resizedImage);
 		//blackcut= (int)blackCutOff;
@@ -65,10 +81,10 @@ public class Pipeline {
 		Mat yellowOutput = Constants.yellowOutput;
 		Mat yellowTags = Constants.yellowTags;
 		
-		if (doSkyStones) skystones = computeSkyStones(yellowTags);
+		if (doSkyStones) skyStones = computeSkyStones(yellowTags);
 		if (doStones) stones = computeStones(yellowOutput);
-		if (doFoundations) foundations = computeFoundations(redOutput, blueOutput, yellowOutput, blackOutput,
-				original);
+		if (doFoundations)
+			foundations = computeFoundations(redOutput, blueOutput, yellowOutput, blackOutput, original);
 		
 		for (Stone s : stones) {
 			s.draw(original);
@@ -76,7 +92,7 @@ public class Pipeline {
 		for (Foundation f : foundations) {
 			f.draw(original);
 		}
-		for (Skystone s : skystones) {
+		for (SkyStone s : skyStones) {
 			s.draw(original);
 		}
 		
@@ -90,11 +106,11 @@ public class Pipeline {
 		return original;
 	}
 	
-	private static List<Skystone> computeSkyStones(Mat yellowTags) {
+	private static List<SkyStone> computeSkyStones(Mat yellowTags) {
 		//morph
 		yellowTags = compute.fillHoro(yellowTags);
 		
-		List<Skystone> skystones = new ArrayList<>();
+		List<SkyStone> skyStones = new ArrayList<>();
 		
 		List<MatOfPoint> hulls = compute.findHulls(yellowTags);
 		
@@ -124,21 +140,21 @@ public class Pipeline {
 		//Start.display(yellowTags,1,"flipTags");
 		List<MatOfPoint> internalHulls = compute.findHulls(yellowTags);
 		internalHulls = compute.filterContours(internalHulls, 1500);//1700
-		
+
 		compute.drawHulls(internalHulls, drawInternalHulls);
 		//Start.display(drawInternalHulls,1,"hulls");
 		
 		for (MatOfPoint h : internalHulls) {
-			Skystone ss = new Skystone(h);
+			SkyStone ss = new SkyStone(h);
 			if (!ss.isBastard) {
-				skystones.add(ss);
+				skyStones.add(ss);
 			}
 		}
 		
 		mask.release();
 		drawInternalHulls.release();
 		
-		return skystones;
+		return skyStones;
 	}
 	
 	/*
@@ -229,8 +245,7 @@ public class Pipeline {
 			Imgproc.line(blackOutput, one, two, new Scalar(new double[]{0, 0, 0}), 1);
 			
 			one = new Point(d.bounds.x + d.bounds.width, d.bounds.y + d.bounds.height * 0.1);
-			two = new Point(d.bounds.x + d.bounds.width,
-					d.bounds.y + d.bounds.height * 0.1 + regionSideClipExtensionLength);
+			two = new Point(d.bounds.x + d.bounds.width, d.bounds.y + d.bounds.height * 0.1 + regionSideClipExtensionLength);
 			Imgproc.line(blackOutput, one, two, new Scalar(new double[]{0, 0, 0}), 1);
 		}
 		

@@ -10,7 +10,7 @@ import org.futurerobotics.jargon.control.PosePIDController
 import org.futurerobotics.jargon.math.MotionState
 import org.futurerobotics.jargon.math.Pose2d
 
-
+//contains manual set
 class DrivePositionController
 @JvmOverloads constructor(
     private val debug: Boolean = false
@@ -20,6 +20,9 @@ class DrivePositionController
     private val driveTarget: DrivePathFollower by dependency()
     private val localizer: Localizer by dependency()
     private val telemetry by onInit { tryGet<OpModeElement>()?.opMode?.telemetry }
+
+    @Volatile
+    var isActive = true
 
     private val controller = FeedForwardWrapper(
         PosePIDController(
@@ -37,6 +40,7 @@ class DrivePositionController
     override var targetVelocity: MotionState<Pose2d> = MotionState.ofAll(Pose2d.ZERO)
 
     override fun loop() {
+        if(!isActive) return
         val curPose = localizer.value
         val reference = driveTarget.targetState
         val motion = GlobalToBot.motion(

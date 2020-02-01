@@ -28,6 +28,7 @@ SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
 CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
 OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
+
 package org.firstinspires.ftc.robotcontroller.internal;
 
 import android.app.ActionBar;
@@ -39,8 +40,6 @@ import android.hardware.usb.UsbDevice;
 import android.hardware.usb.UsbManager;
 import android.net.wifi.WifiManager;
 import android.os.Bundle;
-import android.os.Debug;
-import android.os.Handler;
 import android.os.IBinder;
 import android.preference.PreferenceManager;
 import android.support.annotation.NonNull;
@@ -101,19 +100,15 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 
 @SuppressWarnings("WeakerAccess")
 public class FtcRobotControllerActivity extends Activity {
-	public static final float LOW_MEMORY_THRESHOLD_PERCENT = 30.0f; // Available %
 	public static final String TAG = "RCActivity";
 	private static final int REQUEST_CONFIG_WIFI_CHANNEL = 1;
 	private static final int NUM_GAMEPADS = 2;
-	static public float pctAvailable;
 	private static boolean permissionsValidated = false;
 	protected final SharedPreferencesListener sharedPreferencesListener = new SharedPreferencesListener();
 	private final float CHECK_MEMORY_FREQ_SECONDS = 0.5f;
 	protected WifiManager.WifiLock wifiLock;
 	protected RobotConfigFileManager cfgFileMgr;
-	
 	protected ProgrammingModeManager programmingModeManager;
-	
 	protected UpdateUI.Callback callback;
 	protected Context context;
 	protected Utility utility;
@@ -128,13 +123,17 @@ public class FtcRobotControllerActivity extends Activity {
 	protected TextView textOpMode;
 	protected TextView textErrorMessage;
 	protected ImmersiveMode immersion;
+	
 	protected UpdateUI updateUI;
 	protected Dimmer dimmer;
 	protected LinearLayout entireScreenLayout;
+	
 	protected FtcRobotControllerService controllerService;
 	protected NetworkType networkType;
+	
 	protected FtcEventLoop eventLoop;
 	protected Queue<UsbDevice> receivedUsbAttachmentNotifications;
+	
 	protected WifiMuteStateMachine wifiMuteStateMachine;
 	protected MotionDetection motionDetection;
 	protected boolean serviceShouldUnbind = false;
@@ -151,33 +150,10 @@ public class FtcRobotControllerActivity extends Activity {
 			controllerService = null;
 		}
 	};
-	private Handler memoryHandler;
 	private WifiDirectChannelChanger wifiDirectChannelChanger;
 	
 	public static void setPermissionsValidated() {
 		permissionsValidated = true;
-	}
-
-	public String getTag() {
-		return TAG;
-	}
-	
-	/**
-	 * There are cases where a permission may be revoked and the system restart will restart the
-	 * FtcRobotControllerActivity, instead of the launch activity.  Detect when that happens, and throw
-	 * the device back to the permission validator activity.
-	 */
-	protected boolean enforcePermissionValidator() {
-		if (!permissionsValidated) {
-			RobotLog.vv(TAG, "Redirecting to permission validator");
-			Intent permissionValidatorIntent = new Intent(AppUtil.getDefContext(), PermissionValidatorWrapper.class);
-			startActivity(permissionValidatorIntent);
-			finish();
-			return true;
-		} else {
-			RobotLog.vv(TAG, "Permissions validated already");
-			return false;
-		}
 	}
 	
 	@Override
@@ -187,9 +163,6 @@ public class FtcRobotControllerActivity extends Activity {
 		if (enforcePermissionValidator()) {
 			return;
 		}
-		
-		memoryHandler = new Handler();
-		checkAppMemory();
 		
 		RobotLog.onApplicationStart();  // robustify against onCreate() following onDestroy() but using the same app
 		// instance, which apparently does happen
@@ -315,6 +288,43 @@ public class FtcRobotControllerActivity extends Activity {
 		}
 	}
 	
+	public String getTag() {
+		return TAG;
+	}
+	
+	/**
+	 * There are cases where a permission may be revoked and the system restart will restart the
+	 * FtcRobotControllerActivity, instead of the launch activity.  Detect when that happens, and throw
+	 * the device back to the permission validator activity.
+	 */
+	protected boolean enforcePermissionValidator() {
+		if (!permissionsValidated) {
+			RobotLog.vv(TAG, "Redirecting to permission validator");
+			Intent permissionValidatorIntent = new Intent(AppUtil.getDefContext(), PermissionValidatorWrapper.class);
+			startActivity(permissionValidatorIntent);
+			finish();
+			return true;
+		} else {
+			RobotLog.vv(TAG, "Permissions validated already");
+			return false;
+		}
+	}
+	
+	protected UpdateUI createUpdateUI() {
+		Restarter restarter = new RobotRestarter();
+		UpdateUI result = new UpdateUI(this, dimmer);
+		result.setRestarter(restarter);
+		result.setTextViews(textNetworkConnectionStatus, textRobotStatus, textGamepad, textOpMode, textErrorMessage,
+				textDeviceName);
+		return result;
+	}
+	
+	protected UpdateUI.Callback createUICallback(UpdateUI updateUI) {
+		UpdateUI.Callback result = updateUI.new Callback();
+		result.setStateMonitor(new SoundPlayingRobotMonitor());
+		return result;
+	}
+	
 	@Override
 	protected void onStart() {
 		super.onStart();
@@ -431,30 +441,6 @@ public class FtcRobotControllerActivity extends Activity {
 		updateMonitorLayout(newConfig);
 	}
 	
-	/**
-	 * Updates the orientation of monitorContainer (which contains cameraMonitorView and
-	 * tfodMonitorView) based on the given configuration. Makes the children split the space.
-	 */
-	private void updateMonitorLayout(Configuration configuration) {
-		LinearLayout monitorContainer = findViewById(R.id.monitorContainer);
-		if (configuration.orientation == Configuration.ORIENTATION_LANDSCAPE) {
-			// When the phone is landscape, lay out the monitor views horizontally.
-			monitorContainer.setOrientation(LinearLayout.HORIZONTAL);
-			for (int i = 0; i < monitorContainer.getChildCount(); i++) {
-				View view = monitorContainer.getChildAt(i);
-				view.setLayoutParams(new LayoutParams(0, LayoutParams.MATCH_PARENT, 1 /* weight */));
-			}
-		} else {
-			// When the phone is portrait, lay out the monitor views vertically.
-			monitorContainer.setOrientation(LinearLayout.VERTICAL);
-			for (int i = 0; i < monitorContainer.getChildCount(); i++) {
-				View view = monitorContainer.getChildAt(i);
-				view.setLayoutParams(new LayoutParams(LayoutParams.MATCH_PARENT, 0, 1 /* weight */));
-			}
-		}
-		monitorContainer.requestLayout();
-	}
-	
 	@Override
 	public void onUserInteraction() {
 		if (wifiMuteStateMachine != null) {
@@ -529,6 +515,22 @@ public class FtcRobotControllerActivity extends Activity {
 		return super.onOptionsItemSelected(item);
 	}
 	
+	private boolean isRobotRunning() {
+		if (controllerService == null) {
+			return false;
+		}
+		
+		Robot robot = controllerService.getRobot();
+		
+		if ((robot == null) || (robot.eventLoopManager == null)) {
+			return false;
+		}
+		
+		RobotState robotState = robot.eventLoopManager.state;
+		
+		return robotState == RobotState.RUNNING;
+	}
+	
 	@Override
 	protected void onActivityResult(int request, int result, Intent intent) {
 		if (request == REQUEST_CONFIG_WIFI_CHANNEL) {
@@ -544,20 +546,19 @@ public class FtcRobotControllerActivity extends Activity {
 		}
 	}
 	
-	private void updateUIAndRequestRobotSetup() {
-		if (controllerService != null) {
-			callback.networkConnectionUpdate(controllerService.getNetworkConnectionStatus());
-			callback.updateRobotStatus(controllerService.getRobotStatus());
-			// Only show this first-time toast on headless systems: what we have now on non-headless suffices
-			requestRobotSetup(LynxConstants.isRevControlHub()
-					                  ? new Runnable() {
-				@Override
-				public void run() {
-					showRestartRobotCompleteToast(R.string.toastRobotSetupComplete);
-				}
+	private void requestRobotRestart() {
+		AppUtil.getInstance().showToast(UILocation.BOTH,
+				AppUtil.getDefContext().getString(R.string.toastRestartingRobot));
+		//
+		RobotLog.clearGlobalErrorMsg();
+		RobotLog.clearGlobalWarningMsg();
+		shutdownRobot();
+		requestRobotSetup(new Runnable() {
+			@Override
+			public void run() {
+				showRestartRobotCompleteToast(R.string.toastRestartRobotComplete);
 			}
-					                  : null);
-		}
+		});
 	}
 	
 	private void requestRobotSetup(@Nullable Runnable runOnComplete) {
@@ -588,12 +589,28 @@ public class FtcRobotControllerActivity extends Activity {
 		return new FtcOpModeRegister();
 	}
 	
+	private void shutdownRobot() {
+		if (controllerService != null) controllerService.shutdownRobot();
+	}
+	
 	private void showRestartRobotCompleteToast(@StringRes int resid) {
 		AppUtil.getInstance().showToast(UILocation.BOTH, AppUtil.getDefContext().getString(resid));
 	}
 	
-	private void shutdownRobot() {
-		if (controllerService != null) controllerService.shutdownRobot();
+	private void updateUIAndRequestRobotSetup() {
+		if (controllerService != null) {
+			callback.networkConnectionUpdate(controllerService.getNetworkConnectionStatus());
+			callback.updateRobotStatus(controllerService.getRobotStatus());
+			// Only show this first-time toast on headless systems: what we have now on non-headless suffices
+			requestRobotSetup(LynxConstants.isRevControlHub()
+					                  ? new Runnable() {
+				@Override
+				public void run() {
+					showRestartRobotCompleteToast(R.string.toastRobotSetupComplete);
+				}
+			}
+					                  : null);
+		}
 	}
 	
 	private void checkPreferredChannel() {
@@ -614,21 +631,6 @@ public class FtcRobotControllerActivity extends Activity {
 			wifiDirectChannelChanger = new WifiDirectChannelChanger();
 			wifiDirectChannelChanger.changeToChannel(prefChannel);
 		}
-	}
-	
-	protected UpdateUI createUpdateUI() {
-		Restarter restarter = new RobotRestarter();
-		UpdateUI result = new UpdateUI(this, dimmer);
-		result.setRestarter(restarter);
-		result.setTextViews(textNetworkConnectionStatus, textRobotStatus, textGamepad, textOpMode, textErrorMessage,
-				textDeviceName);
-		return result;
-	}
-	
-	protected UpdateUI.Callback createUICallback(UpdateUI updateUI) {
-		UpdateUI.Callback result = updateUI.new Callback();
-		result.setStateMonitor(new SoundPlayingRobotMonitor());
-		return result;
 	}
 	
 	protected void bindToService() {
@@ -676,55 +678,28 @@ public class FtcRobotControllerActivity extends Activity {
 				networkType.toString());
 	}
 	
-	private boolean isRobotRunning() {
-		if (controllerService == null) {
-			return false;
+	/**
+	 * Updates the orientation of monitorContainer (which contains cameraMonitorView and
+	 * tfodMonitorView) based on the given configuration. Makes the children split the space.
+	 */
+	private void updateMonitorLayout(Configuration configuration) {
+		LinearLayout monitorContainer = findViewById(R.id.monitorContainer);
+		if (configuration.orientation == Configuration.ORIENTATION_LANDSCAPE) {
+			// When the phone is landscape, lay out the monitor views horizontally.
+			monitorContainer.setOrientation(LinearLayout.HORIZONTAL);
+			for (int i = 0; i < monitorContainer.getChildCount(); i++) {
+				View view = monitorContainer.getChildAt(i);
+				view.setLayoutParams(new LayoutParams(0, LayoutParams.MATCH_PARENT, 1 /* weight */));
+			}
+		} else {
+			// When the phone is portrait, lay out the monitor views vertically.
+			monitorContainer.setOrientation(LinearLayout.VERTICAL);
+			for (int i = 0; i < monitorContainer.getChildCount(); i++) {
+				View view = monitorContainer.getChildAt(i);
+				view.setLayoutParams(new LayoutParams(LayoutParams.MATCH_PARENT, 0, 1 /* weight */));
+			}
 		}
-		
-		Robot robot = controllerService.getRobot();
-		
-		if ((robot == null) || (robot.eventLoopManager == null)) {
-			return false;
-		}
-		
-		RobotState robotState = robot.eventLoopManager.state;
-		
-		return robotState == RobotState.RUNNING;
-	}
-	
-	public void onServiceBind(final FtcRobotControllerService service) {
-		RobotLog.vv(FtcRobotControllerService.TAG, "%s.controllerService=bound", TAG);
-		controllerService = service;
-		updateUI.setControllerService(controllerService);
-		
-		updateUIAndRequestRobotSetup();
-		programmingModeManager.setState(new FtcRobotControllerServiceState() {
-			@NonNull
-			@Override
-			public WebServer getWebServer() {
-				return service.getWebServer();
-			}
-			
-			@Override
-			public EventLoopManager getEventLoopManager() {
-				return service.getRobot().eventLoopManager;
-			}
-		});
-	}
-	
-	private void requestRobotRestart() {
-		AppUtil.getInstance().showToast(UILocation.BOTH,
-				AppUtil.getDefContext().getString(R.string.toastRestartingRobot));
-		//
-		RobotLog.clearGlobalErrorMsg();
-		RobotLog.clearGlobalWarningMsg();
-		shutdownRobot();
-		requestRobotSetup(new Runnable() {
-			@Override
-			public void run() {
-				showRestartRobotCompleteToast(R.string.toastRestartRobotComplete);
-			}
-		});
+		monitorContainer.requestLayout();
 	}
 	
 	protected void hittingMenuButtonBrightensScreen() {
@@ -764,24 +739,26 @@ public class FtcRobotControllerActivity extends Activity {
 		}
 	}
 	
-	public void checkAppMemory() {
-		//Log.d("MEMORY","           ");
-		// Get app memory info
-		long used = Debug.getNativeHeapAllocatedSize();
-		long total = Debug.getNativeHeapSize();
+	public void onServiceBind(final FtcRobotControllerService service) {
+		RobotLog.vv(FtcRobotControllerService.TAG, "%s.controllerService=bound", TAG);
+		controllerService = service;
+		updateUI.setControllerService(controllerService);
 		
-		//Log.d("MEMORY",String.valueOf((used*1.0)/total));
-		
-		// Check for & and handle low memory state
-		pctAvailable = 100f * (1f - ((float) used / total));
-		
-		// Repeat after a delay
-		memoryHandler.postDelayed(new Runnable() {
-			public void run() {
-				checkAppMemory();
+		updateUIAndRequestRobotSetup();
+		programmingModeManager.setState(new FtcRobotControllerServiceState() {
+			@NonNull
+			@Override
+			public WebServer getWebServer() {
+				return service.getWebServer();
 			}
-		}, (int) (CHECK_MEMORY_FREQ_SECONDS * 1000));
+			
+			@Override
+			public EventLoopManager getEventLoopManager() {
+				return service.getRobot().eventLoopManager;
+			}
+		});
 	}
+	
 	protected class RobotRestarter implements Restarter {
 		
 		public void requestRestart() {
