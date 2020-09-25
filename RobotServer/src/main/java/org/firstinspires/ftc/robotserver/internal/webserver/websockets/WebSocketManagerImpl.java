@@ -32,11 +32,14 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 package org.firstinspires.ftc.robotserver.internal.webserver.websockets;
 
-import android.support.annotation.NonNull;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 import com.qualcomm.robotcore.util.RobotLog;
 import com.qualcomm.robotcore.util.Util;
 
+import org.firstinspires.ftc.robotcore.internal.collections.SimpleGson;
+import org.firstinspires.ftc.robotcore.internal.system.AppUtil;
 import org.firstinspires.ftc.robotcore.internal.webserver.websockets.FtcWebSocket;
 import org.firstinspires.ftc.robotcore.internal.webserver.websockets.FtcWebSocketMessage;
 import org.firstinspires.ftc.robotcore.internal.webserver.websockets.WebSocketManager;
@@ -56,6 +59,8 @@ public final class WebSocketManagerImpl implements WebSocketManager {
 
     private static final String SUBSCRIBE_TO_NAMESPACE_MESSAGE_TYPE = "subscribeToNamespace";
     private static final String UNSUBSCRIBE_FROM_NAMESPACE_MESSAGE_TYPE = "unsubscribeFromNamespace";
+    private static final String REQUEST_CURRENT_TIME_MESSAGE_TYPE = "requestCurrentTime";
+    private static final String NOTIFY_CURRENT_TIME_MESSAGE_TYPE = "notifyCurrentTime";
 
     private static final String TAG = "WebSocketManager";
 
@@ -64,6 +69,13 @@ public final class WebSocketManagerImpl implements WebSocketManager {
     //----------------------------------------------------------------------------------------------
     private final ConcurrentMap<String, WebSocketNamespaceHandler> namespaceHandlerMap = new ConcurrentHashMap<>();
     private final ConcurrentMap<String, Set<FtcWebSocket>> namespaceSubscribersMap = new ConcurrentHashMap<>();
+
+    //----------------------------------------------------------------------------------------------
+    // Constructor
+    //----------------------------------------------------------------------------------------------
+    public WebSocketManagerImpl() {
+        AppUtil.getInstance().setWebSocketManager(this);
+    }
 
     //----------------------------------------------------------------------------------------------
     // WebSocketManager Method Overrides
@@ -121,6 +133,13 @@ public final class WebSocketManagerImpl implements WebSocketManager {
         }
         //noinspection ConstantConditions
         namespaceHandlerMap.get(message.getNamespace()).onMessage(message, webSocket);
+    }
+
+    void onWebSocketConnected(FtcWebSocket webSocket) {
+        // When a new WebSocket connects, ask for the current time if our clock has been reset to 1970.
+        if (!AppUtil.getInstance().isSaneWalkClockTime(AppUtil.getInstance().getWallClockTime())) {
+            ((FtcWebSocketImpl)webSocket).internalSend(new FtcWebSocketMessage(SYSTEM_NAMESPACE, REQUEST_CURRENT_TIME_MESSAGE_TYPE));
+        }
     }
 
     //----------------------------------------------------------------------------------------------
@@ -185,7 +204,14 @@ public final class WebSocketManagerImpl implements WebSocketManager {
             // The payload for this message type is a String containing the namespace to unsubscribe from
             String namespace = message.getPayload();
             unsubscribeWebSocketFromNamespace(webSocket, namespace);
+        } else if (message.getType().equals(NOTIFY_CURRENT_TIME_MESSAGE_TYPE)) {
+            handleNotifyCurrentTimeMessage(message);
         }
+    }
+
+    private void handleNotifyCurrentTimeMessage(FtcWebSocketMessage message) {
+        TimePayload payload = TimePayload.fromJson(message.getPayload());
+        AppUtil.getInstance().setWallClockIfCurrentlyInsane(payload.timeMs, payload.timezone);
     }
 
     private static final class BroadcastOnlyNamespaceHandler extends WebSocketNamespaceHandler {
@@ -201,6 +227,17 @@ public final class WebSocketManagerImpl implements WebSocketManager {
 
         private String getTag() {
             return "BroadcastOnlyNamespace-" + getNamespace();
+        }
+    }
+
+    private static final class TimePayload {
+        long timeMs;
+        @Nullable String timezone;
+
+        private TimePayload() { }
+
+        private static TimePayload fromJson(String json) {
+            return SimpleGson.getInstance().fromJson(json, TimePayload.class);
         }
     }
 }

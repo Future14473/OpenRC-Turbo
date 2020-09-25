@@ -11,32 +11,32 @@ According to the [2019-2020 Game Manual Part 1](https://www.firstinspires.org/si
 
 **HOWEVER**, in order to address this, OpenRC has a `stock` build variant which will compile the `TeamCode` and `FtcRobotController` modules against the official, unmodified AAR files, rather than against the extracted modules.
 
-## Device compatibility
+## Device Compatibility
 
-Unfortunately, OpenRC is only compatible with devices that run Android 6.0 or higher. For FTC, this means that it is incompatible with the ZTE Speed. OpenRC will work fine on all other FTC-legal devices (including the new Control Hub).
-
-For the curious: the cause of the incompatibility is the result of a bug in the `dlopen()` function of Android versions prior to 6.0. When loading the `libRobotCore.so` on older Android versions, an `UnsatisfiedLinkError` will be thrown because it cannot find a symbol that is declared in `libVuforia.so` and `dlopen()` is not smart enough to know that `libVuforia.so` has already been loaded into memory. See the "Correct soname/path handling" section of [this](https://android.googlesource.com/platform/bionic/+/master/android-changes-for-ndk-developers.md) page for more details.
+Compatible with all legal FTC Robot Controller devices for the 2020-2021 season, including the Control Hub.
 
 ## Build variants
 
 ### Variant Descriptions
 
- - **Stock - 40MB APK** *(oof!)*
-     - Competition legal
+Normal SDK 5.5 APK size: 42MB
 
- - **Turbo - 10MB APK** *(4x smaller!)*
+ - **Stock - 33.5MB APK** *(1.25x smaller)*
+     - Competition legal
+     - 64-bit libs removed
+
+ - **Turbo - 9.2MB APK** *(4.5x smaller)*
 
      *Note: If you would like to use Blocks, you will need to copy your private Vuforia key into the `Blocks/src/main/assets/CzechWolf` file*
      - Vuforia native library loaded dynamically
      - Vuforia/TF datasets loaded dynamically
      - OnBotJava removed
 
- - **Extreme Turbo - 4MB APK** *(10x smaller!)*
+ - **Extreme Turbo - 4.8MB APK** *(8.7x smaller)*
      - Vuforia native library loaded dynamically
      - Vuforia/TF datasets loaded dynamically
      - OnBotJava removed
      - Blocks removed
-     - Web management removed
      - Sound files removed
 
 ### Benchmarks
@@ -52,7 +52,7 @@ For the curious: the cause of the incompatibility is the result of a bug in the 
  1. Fork this repository
  2. Clone your fork
  3. Do `git remote add upstream https://github.com/OpenFTC/OpenRC-Turbo.git`
- 4. Copy all of the files found in the `filesForDynamicLoad` folder of this repo into the `FIRST` folder on the RC's internal storage
+ 4. Copy all of the files found in the `filesForDynamicLoad` folder of this repo into the `FIRST/vision` folder on the RC's internal storage
  5. Select your desired build variant (see the *Switching Build Variants* section)
 
 ## Update Process
@@ -94,7 +94,7 @@ In order to reduce APK size, the Turbo and Extreme Turbo variants do not bundle 
 // Find a line similar to this in the program
 vuforia.loadTrackablesFromAsset("DatasetName");
 // And replace it with this (obviously adjusting the DatasetName)
-vuforia.loadTrackablesFromFile("/sdcard/FIRST/DatasetName");
+vuforia.loadTrackablesFromFile("/sdcard/FIRST/vision/DatasetName");
 
 /*
  * For TensorFlow
@@ -102,13 +102,46 @@ vuforia.loadTrackablesFromFile("/sdcard/FIRST/DatasetName");
 // Find a line similar to this in the program
 tfod.loadModelFromAsset("DatasetName.tflite");
 // And replace it with this (obviously adjusting the DatasetName)
-tfod.loadModelFromFile("/sdcard/FIRST/DatasetName.tflite");
+tfod.loadModelFromFile("/sdcard/FIRST/vision/DatasetName.tflite");
 
 ```
 
 
 
 ## Release Notes:
+
+### 6.0A
+
+Released on 25 September 2020
+
+ - Updates to SDK v6.0
+ - Changes vision datasets to be loaded from `vision` subfolder of `FIRST` folder to prevent the Vuforia XML files from appearing in the configuration editor
+
+### 5.5B
+
+Released on 30 August 2020
+
+ - Shrinks Turbo/ExtremeTurbo APK size by a few hundred KB since 5.5A release
+ - Adds core web management to Extreme Turbo variant, increasing compatibility with Control Hub
+ - Logs build variant to RobotLog
+
+### 5.5A
+
+Released on 28 August 2020
+
+ - Update to SDK v5.5
+
+### 5.4B
+
+Released on 11 August 2020
+
+ - Improve compatibility with Control Hub
+
+### 5.4A
+
+Released on 15 January 2020
+
+ - Update to SDK v5.4
 
 ### 5.3B
 

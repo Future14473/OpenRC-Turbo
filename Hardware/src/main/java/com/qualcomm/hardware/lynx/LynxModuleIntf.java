@@ -32,7 +32,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 package com.qualcomm.hardware.lynx;
 
-import android.support.annotation.NonNull;
+import androidx.annotation.NonNull;
 
 import com.qualcomm.hardware.lynx.commands.LynxCommand;
 import com.qualcomm.hardware.lynx.commands.LynxMessage;
@@ -48,7 +48,6 @@ import com.qualcomm.robotcore.util.SerialNumber;
  */
 public interface LynxModuleIntf extends RobotCoreLynxModule, HardwareDevice, Engagable
     {
-    SerialNumber getSerialNumber();
     <T> T acquireI2cLockWhile(Supplier<T> supplier)                     throws InterruptedException, RobotCoreException, LynxNackException;
     void acquireNetworkTransmissionLock(@NonNull LynxMessage message)   throws InterruptedException;
     void releaseNetworkTransmissionLock(@NonNull LynxMessage message)   throws InterruptedException;
@@ -59,5 +58,8 @@ public interface LynxModuleIntf extends RobotCoreLynxModule, HardwareDevice, Eng
     void retransmit(LynxMessage message)                        throws InterruptedException;
     void finishedWithMessage(LynxMessage message)               throws InterruptedException;
     void noteAttentionRequired();
+    void noteDatagramReceived();
+    void noteNotResponding();
+    boolean isNotResponding();
     int getInterfaceBaseCommandNumber(String interfaceName);
     }

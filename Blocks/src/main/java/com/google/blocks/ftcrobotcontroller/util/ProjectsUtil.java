@@ -1,21 +1,33 @@
-// Copyright 2016 Google Inc.
+/*
+ * Copyright 2016 Google LLC
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 package com.google.blocks.ftcrobotcontroller.util;
 
-import static com.google.blocks.ftcrobotcontroller.hardware.HardwareUtil.CAPABILITY_VUFORIA;
-import static com.google.blocks.ftcrobotcontroller.hardware.HardwareUtil.CAPABILITY_CAMERA;
-import static com.google.blocks.ftcrobotcontroller.hardware.HardwareUtil.CAPABILITY_WEBCAM;
-import static com.google.blocks.ftcrobotcontroller.hardware.HardwareUtil.CAPABILITY_TFOD;
+import static com.google.blocks.ftcrobotcontroller.hardware.HardwareUtil.Capability;
 
 import static org.firstinspires.ftc.robotcore.internal.system.AppUtil.BLOCKS_BLK_EXT;
 import static org.firstinspires.ftc.robotcore.internal.system.AppUtil.BLOCKS_JS_EXT;
 import static org.firstinspires.ftc.robotcore.internal.system.AppUtil.BLOCK_OPMODES_DIR;
 
 import android.content.res.AssetManager;
-import android.support.annotation.Nullable;
+import androidx.annotation.Nullable;
 import android.text.Html;
 import android.util.Xml;
 
+import com.google.blocks.ftcrobotcontroller.IOExceptionWithUserVisibleMessage;
 import com.google.blocks.ftcrobotcontroller.hardware.HardwareItem;
 import com.google.blocks.ftcrobotcontroller.hardware.HardwareItemMap;
 import com.google.blocks.ftcrobotcontroller.hardware.HardwareType;
@@ -24,7 +36,6 @@ import com.qualcomm.robotcore.util.RobotLog;
 
 import org.firstinspires.ftc.robotcore.external.Supplier;
 import org.firstinspires.ftc.robotcore.external.ThrowingCallable;
-import org.firstinspires.ftc.robotcore.internal.files.FileBasedLock;
 import org.firstinspires.ftc.robotcore.internal.opmode.OnBotJavaHelper;
 import org.firstinspires.ftc.robotcore.internal.opmode.OpModeMeta;
 import org.firstinspires.ftc.robotcore.internal.system.AppUtil;
@@ -42,7 +53,7 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.List;
@@ -61,7 +72,6 @@ public class ProjectsUtil {
 
   public static final String TAG = "ProjectsUtil";
 
-  private static final File PROJECTS_LOCK = new File(BLOCK_OPMODES_DIR, "/projectslock/");
   public static final String VALID_PROJECT_REGEX =
       "^[a-zA-Z0-9 \\!\\#\\$\\%\\&\\'\\(\\)\\+\\,\\-\\.\\;\\=\\@\\[\\]\\^_\\{\\}\\~]+$";
   private static final String XML_END_TAG = "</xml>";
@@ -80,30 +90,11 @@ public class ProjectsUtil {
   private ProjectsUtil() {
   }
 
-  /** prevents the set of project files from changing while lock is held */
-  protected static <T> T lockProjectsWhile(Supplier<T> supplier) {
-    try {
-      return (new FileBasedLock(PROJECTS_LOCK)).lockWhile(supplier);
-    } catch (InterruptedException e) {
-      Thread.currentThread().interrupt();
-      return null;
-    }
-  }
-
-  protected static <T,E extends Throwable> T lockProjectsWhile(final ThrowingCallable<T,E> callable) throws E {
-    try {
-      return (new FileBasedLock(PROJECTS_LOCK)).lockWhile(callable);
-    } catch (InterruptedException e) {
-      Thread.currentThread().interrupt();
-      return null;
-    }
-  }
-
   /**
    * Returns the names and last modified time of existing blocks projects that have a blocks file.
    */
   public static String fetchProjectsWithBlocks() {
-    return lockProjectsWhile(new Supplier<String>() {
+    return ProjectsLockManager.lockProjectsWhile(new Supplier<String>() {
       @Override public String get() {
         File[] files = BLOCK_OPMODES_DIR.listFiles(new FilenameFilter() {
           @Override
@@ -158,7 +149,7 @@ public class ProjectsUtil {
    */
   public static void fetchProjectsForOfflineBlocksEditor(
       final List<OfflineBlocksProject> offlineBlocksProjects) throws IOException {
-    lockProjectsWhile(new ThrowingCallable<Void, IOException>() {
+    ProjectsLockManager.lockProjectsWhile(new ThrowingCallable<Void, IOException>() {
       @Override public Void call() throws IOException {
         File[] files = BLOCK_OPMODES_DIR.listFiles(new FilenameFilter() {
           @Override
@@ -210,7 +201,7 @@ public class ProjectsUtil {
           String sampleName = filename.substring(0, filename.length() - BLOCKS_BLK_EXT.length());
           if (!sampleName.equals(DEFAULT_BLOCKS_SAMPLE_NAME)) {
             String blkFileContent = readSample(sampleName, hardwareItemMap);
-            Set<String> requestedCapabilities = getRequestedCapabilities(blkFileContent);
+            Set<Capability> requestedCapabilities = getRequestedCapabilities(blkFileContent);
             // TODO(lizlooney): Consider adding required hardware.
             jsonSamples
                 .append(delimiter)
@@ -219,7 +210,7 @@ public class ProjectsUtil {
                 .append("\"escapedName\":\"").append(escapeDoubleQuotes(Html.escapeHtml(sampleName))).append("\", ")
                 .append("\"requestedCapabilities\":[");
             String delimiter2 = "";
-            for (String requestedCapability : requestedCapabilities) {
+            for (Capability requestedCapability : requestedCapabilities) {
               jsonSamples
                   .append(delimiter2)
                   .append("\"").append(requestedCapability).append("\"");
@@ -257,19 +248,24 @@ public class ProjectsUtil {
   /**
    * Returns the set of capabilities used by the given blocks content.
    */
-  private static Set<String> getRequestedCapabilities(String blkFileContent) {
-    Set<String> requestedCapabilities = new HashSet<>();
-    if (blkFileContent.contains("<block type=\"vuforia")) {
-      requestedCapabilities.add(CAPABILITY_VUFORIA);
-    }
-    if (blkFileContent.contains("<block type=\"vuforiaSkyStone_initialize_withCameraDirection")) {
-      requestedCapabilities.add(CAPABILITY_CAMERA);
-    }
-    if (blkFileContent.contains("<block type=\"vuforiaSkyStone_initialize_withWebcam")) {
-      requestedCapabilities.add(CAPABILITY_WEBCAM);
-    }
+  private static Set<Capability> getRequestedCapabilities(String blkFileContent) {
+    Set<Capability> requestedCapabilities = new LinkedHashSet<>();
+    // The order here is important. If any of these capabilities is not supported by the robot
+    // configuration, we will show the warning associated with the first missing capability.
     if (blkFileContent.contains("<block type=\"tfod")) {
-      requestedCapabilities.add(CAPABILITY_TFOD);
+      requestedCapabilities.add(Capability.TFOD);
+    }
+    if (blkFileContent.contains("<block type=\"vuforia")) {
+      requestedCapabilities.add(Capability.VUFORIA);
+    }
+    if (blkFileContent.contains("<block type=\"navigation_switchableCamera")) {
+      requestedCapabilities.add(Capability.SWITCHABLE_CAMERA);
+    }
+    if (blkFileContent.contains("_initialize_withWebcam")) {
+      requestedCapabilities.add(Capability.WEBCAM);
+    }
+    if (blkFileContent.contains("_initialize_withCameraDirection")) {
+      requestedCapabilities.add(Capability.CAMERA);
     }
     return requestedCapabilities;
   }
@@ -279,7 +275,7 @@ public class ProjectsUtil {
    * are enabled.
    */
   public static List<OpModeMeta> fetchEnabledProjectsWithJavaScript() {
-    return lockProjectsWhile(new Supplier<List<OpModeMeta>>() {
+    return ProjectsLockManager.lockProjectsWhile(new Supplier<List<OpModeMeta>>() {
       @Override public List<OpModeMeta> get() {
         String[] filenames = BLOCK_OPMODES_DIR.list(new FilenameFilter() {
           @Override
@@ -408,7 +404,7 @@ public class ProjectsUtil {
         "asLynxModule", "AsREVModule");
     // In previous versions, identifier suffix AsREVColorRangeSensor was asLynxI2cColorRangeSensor.
     blkContent = replaceIdentifierSuffixInBlocks(blkContent,
-        hardwareItemMap.getHardwareItems(HardwareType.LYNX_I2C_COLOR_RANGE_SENSOR),
+        hardwareItemMap.getHardwareItems(HardwareType.COLOR_RANGE_SENSOR),
         "asLynxI2cColorRangeSensor", "AsREVColorRangeSensor");
 
     // In previous versions, some hardware types didn't have suffices.
@@ -455,9 +451,9 @@ public class ProjectsUtil {
             "IDENTIFIER2",
           };
           for (String identifierFieldName : identifierFieldNames) {
-            String oldTag = "<field name=\"" + identifierFieldName + "\">" + oldIdentifier + "</field>";
-            String newTag = "<field name=\"" + identifierFieldName + "\">" + newIdentifier + "</field>";
-            blkContent = blkContent.replace(oldTag, newTag);
+            String oldElement = "<field name=\"" + identifierFieldName + "\">" + oldIdentifier + "</field>";
+            String newElement = "<field name=\"" + identifierFieldName + "\">" + newIdentifier + "</field>";
+            blkContent = blkContent.replace(oldElement, newElement);
           }
         }
       }
@@ -512,11 +508,12 @@ public class ProjectsUtil {
    * HardwareItemMap}.
    */
   private static String replaceHardwareIdentifiers(String blkContent, HardwareItemMap hardwareItemMap) {
-    // The following handles the identifier that are hardcoded in the sample blocks op modes.
+    // The following handles the identifiers that are hardcoded in the sample blocks op modes.
     if (hardwareItemMap.contains(HardwareType.DC_MOTOR)) {
       List<HardwareItem> items = hardwareItemMap.getHardwareItems(HardwareType.DC_MOTOR);
       if (!items.isEmpty()) {
-        String anyDcMotor = items.get(0).identifier;
+        String firstDcMotor = items.get(0).identifier;
+        String secondDcMotor = (items.size() > 1) ? items.get(1).identifier : firstDcMotor;
         String leftDcMotor = null;
         String rightDcMotor = null;
         for (HardwareItem item : items) {
@@ -529,74 +526,68 @@ public class ProjectsUtil {
           }
         }
         if (leftDcMotor == null) {
-          leftDcMotor = anyDcMotor;
+          leftDcMotor = firstDcMotor;
         }
         if (rightDcMotor == null) {
-          rightDcMotor = anyDcMotor;
+          rightDcMotor = secondDcMotor;
         }
-        blkContent = replaceIdentifierInBlocks(blkContent, false, items,
-            "motorTest", anyDcMotor, "IDENTIFIER");
-        blkContent = replaceIdentifierInBlocks(blkContent, false, items,
-            "left_drive", leftDcMotor, "IDENTIFIER", "IDENTIFIER1");
-        blkContent = replaceIdentifierInBlocks(blkContent, false, items,
-            "right_drive", rightDcMotor, "IDENTIFIER", "IDENTIFIER2");
+        blkContent = replaceIdentifierInBlocks("motorTestAsDcMotor",
+            firstDcMotor, blkContent, false, items, "IDENTIFIER");
+        blkContent = replaceIdentifierInBlocks("left_driveAsDcMotor",
+            leftDcMotor, blkContent, false, items, "IDENTIFIER", "IDENTIFIER1");
+        blkContent = replaceIdentifierInBlocks("right_driveAsDcMotor",
+            rightDcMotor, blkContent, false, items, "IDENTIFIER", "IDENTIFIER2");
       }
     }
     if (hardwareItemMap.contains(HardwareType.DIGITAL_CHANNEL)) {
       List<HardwareItem> items = hardwareItemMap.getHardwareItems(HardwareType.DIGITAL_CHANNEL);
       if (!items.isEmpty()) {
-        String anyDigitalChannel = items.get(0).identifier;
-        blkContent = replaceIdentifierInBlocks(blkContent, false, items,
-            "digitalTouchAsDigitalChannel", anyDigitalChannel, "IDENTIFIER");
-        blkContent = replaceIdentifierInBlocks(blkContent, false, items,
-            "digitalTouch", anyDigitalChannel, "IDENTIFIER");
+        String firstDigitalChannel = items.get(0).identifier;
+        blkContent = replaceIdentifierInBlocks("digitalTouchAsDigitalChannel",
+            firstDigitalChannel, blkContent, false, items, "IDENTIFIER");
       }
     }
     if (hardwareItemMap.contains(HardwareType.BNO055IMU)) {
       List<HardwareItem> items = hardwareItemMap.getHardwareItems(HardwareType.BNO055IMU);
       if (!items.isEmpty()) {
-        String anyBno055imu = items.get(0).identifier;
-        blkContent = replaceIdentifierInBlocks(blkContent, false, items,
-            "imu", anyBno055imu, "IDENTIFIER");
+        String firstBno055imu = items.get(0).identifier;
+        blkContent = replaceIdentifierInBlocks("imuAsBNO055IMU",
+            firstBno055imu, blkContent, false, items, "IDENTIFIER");
       }
     }
     if (hardwareItemMap.contains(HardwareType.SERVO)) {
       List<HardwareItem> items = hardwareItemMap.getHardwareItems(HardwareType.SERVO);
       if (!items.isEmpty()) {
-        String anyServo = items.get(0).identifier;
-        blkContent = replaceIdentifierInBlocks(blkContent, false, items,
-            "left_hand", anyServo, "IDENTIFIER");
-        blkContent = replaceIdentifierInBlocks(blkContent, false, items,
-            "servoTest", anyServo, "IDENTIFIER");
+        String firstServo = items.get(0).identifier;
+        blkContent = replaceIdentifierInBlocks("left_handAsServo",
+            firstServo, blkContent, false, items, "IDENTIFIER");
+        blkContent = replaceIdentifierInBlocks("servoTestAsServo",
+            firstServo, blkContent, false, items, "IDENTIFIER");
       }
     }
-    if (hardwareItemMap.contains(HardwareType.LYNX_I2C_COLOR_RANGE_SENSOR)) {
-      List<HardwareItem> items = hardwareItemMap.getHardwareItems(HardwareType.LYNX_I2C_COLOR_RANGE_SENSOR);
+    if (hardwareItemMap.contains(HardwareType.COLOR_RANGE_SENSOR)) {
+      List<HardwareItem> items = hardwareItemMap.getHardwareItems(HardwareType.COLOR_RANGE_SENSOR);
       if (!items.isEmpty()) {
-        String anyLynxI2cColorRangeSensor = items.get(0).identifier;
-        blkContent = replaceIdentifierInBlocks(blkContent, false, items,
-            "sensorColorRange", anyLynxI2cColorRangeSensor, "IDENTIFIER");
-        blkContent = replaceIdentifierInBlocks(blkContent, false, items,
-            "sensorColorRangeasLynxI2cColorRangeSensor", anyLynxI2cColorRangeSensor, "IDENTIFIER");
+        String firstColorRangeSensor = items.get(0).identifier;
+        blkContent = replaceIdentifierInBlocks("sensorColorRangeAsREVColorRangeSensor",
+            firstColorRangeSensor, blkContent, false, items, "IDENTIFIER");
       }
     }
     if (hardwareItemMap.contains(HardwareType.REV_BLINKIN_LED_DRIVER)) {
       List<HardwareItem> items = hardwareItemMap.getHardwareItems(HardwareType.REV_BLINKIN_LED_DRIVER);
       if (!items.isEmpty()) {
-        String anyRevBlinkinLedDriver = items.get(0).identifier;
-        blkContent = replaceIdentifierInBlocks(blkContent, false, items,
-            "servoAsRevBlinkinLedDriver", anyRevBlinkinLedDriver, "IDENTIFIER");
-        blkContent = replaceIdentifierInBlocks(blkContent, false, items,
-            "blinkinAsRevBlinkinLedDriver", anyRevBlinkinLedDriver, "IDENTIFIER");
+        String firstRevBlinkinLedDriver = items.get(0).identifier;
+        blkContent = replaceIdentifierInBlocks("blinkinAsRevBlinkinLedDriver",
+            firstRevBlinkinLedDriver, blkContent, false, items, "IDENTIFIER");
       }
     }
     if (hardwareItemMap.contains(HardwareType.WEBCAM_NAME)) {
       List<HardwareItem> items = hardwareItemMap.getHardwareItems(HardwareType.WEBCAM_NAME);
       if (!items.isEmpty()) {
         // The webcam block uses the deviceName, rather than the identifier.
-        String anyWebcamName = items.get(0).deviceName;
-        blkContent = replaceIdentifierInBlocks(blkContent, true, items,
-            "Webcam 1", anyWebcamName, "WEBCAM_NAME");
+        String firstWebcamName = items.get(0).deviceName;
+        blkContent = replaceIdentifierInBlocks("Webcam 1",
+            firstWebcamName, blkContent, true, items, "WEBCAM_NAME");
       }
     }
     return blkContent;
@@ -605,8 +596,8 @@ public class ProjectsUtil {
   /**
    * Replaces an identifier in blocks.
    */
-  private static String replaceIdentifierInBlocks(String blkContent, boolean useDeviceName,
-      List<HardwareItem> items, String oldIdentifier, String newIdentifier, String... fieldNames) {
+  private static String replaceIdentifierInBlocks(String oldIdentifier, String newIdentifier,
+      String blkContent, boolean useDeviceName, List<HardwareItem> items, String... fieldNames) {
     for (HardwareItem item : items) {
       String identifier = useDeviceName ? item.deviceName : item.identifier;
       if (identifier.equals(oldIdentifier)) {
@@ -614,9 +605,9 @@ public class ProjectsUtil {
       }
     }
     for (String fieldName : fieldNames) {
-      String oldTag = "<field name=\"" + fieldName + "\">" + oldIdentifier + "</field>";
-      String newTag = "<field name=\"" + fieldName + "\">" + newIdentifier + "</field>";
-      blkContent = blkContent.replace(oldTag, newTag);
+      String oldElement = "<field name=\"" + fieldName + "\">" + oldIdentifier + "</field>";
+      String newElement = "<field name=\"" + fieldName + "\">" + newIdentifier + "</field>";
+      blkContent = blkContent.replace(oldElement, newElement);
     }
     return blkContent;
   }
@@ -635,7 +626,7 @@ public class ProjectsUtil {
       throw new IllegalArgumentException();
     }
 
-    lockProjectsWhile(new ThrowingCallable<Void, IOException>() {
+    ProjectsLockManager.lockProjectsWhile(new ThrowingCallable<Void, IOException>() {
       @Override public Void call() throws IOException {
         AppUtil.getInstance().ensureDirectoryExists(BLOCK_OPMODES_DIR, false);
 
@@ -656,7 +647,15 @@ public class ProjectsUtil {
           jsTempBackup = new File(BLOCK_OPMODES_DIR, "backup_" + timestamp + "_" + projectName + BLOCKS_JS_EXT);
           FileUtil.copyFile(jsFile, jsTempBackup);
         }
-        FileUtil.writeFile(blkFile, blkFileContent);
+        // Break the blocks content into multiple lines so it is easier to read/diff.
+        String formattedBlkFileContent = blkFileContent
+            .replace("><", ">\n<")
+            .replace(">\n</field>", "></field>")
+            .replace("</Extra> ", "</Extra>");
+        if (!formattedBlkFileContent.endsWith("\n")) {
+          formattedBlkFileContent += "\n";
+        }
+        FileUtil.writeFile(blkFile, formattedBlkFileContent);
         FileUtil.writeFile(jsFile, jsFileContent);
         // Once we've written the new content to the files, we can delete the temporary copies of
         // the old files.
@@ -682,7 +681,7 @@ public class ProjectsUtil {
     if (!isValidProjectName(oldProjectName) || !isValidProjectName(newProjectName)) {
       throw new IllegalArgumentException();
     }
-    lockProjectsWhile(new ThrowingCallable<Void, IOException>() {
+    ProjectsLockManager.lockProjectsWhile(new ThrowingCallable<Void, IOException>() {
       @Override public Void call() throws IOException {
         AppUtil.getInstance().ensureDirectoryExists(BLOCK_OPMODES_DIR, false);
 
@@ -710,16 +709,22 @@ public class ProjectsUtil {
     if (!isValidProjectName(oldProjectName) || !isValidProjectName(newProjectName)) {
       throw new IllegalArgumentException();
     }
-    lockProjectsWhile(new ThrowingCallable<Void, IOException>() {
+    ProjectsLockManager.lockProjectsWhile(new ThrowingCallable<Void, IOException>() {
       @Override public Void call() throws IOException {
         AppUtil.getInstance().ensureDirectoryExists(BLOCK_OPMODES_DIR, false);
 
         File oldBlk = new File(BLOCK_OPMODES_DIR, oldProjectName + BLOCKS_BLK_EXT);
         File newBlk = new File(BLOCK_OPMODES_DIR, newProjectName + BLOCKS_BLK_EXT);
         FileUtil.copyFile(oldBlk, newBlk);
-        File oldJs = new File(BLOCK_OPMODES_DIR, oldProjectName + BLOCKS_JS_EXT);
-        File newJs = new File(BLOCK_OPMODES_DIR, newProjectName + BLOCKS_JS_EXT);
-        FileUtil.copyFile(oldJs, newJs);
+        try {
+          File oldJs = new File(BLOCK_OPMODES_DIR, oldProjectName + BLOCKS_JS_EXT);
+          File newJs = new File(BLOCK_OPMODES_DIR, newProjectName + BLOCKS_JS_EXT);
+          FileUtil.copyFile(oldJs, newJs);
+        } catch (IOException e) {
+          throw new IOExceptionWithUserVisibleMessage(
+              "The blocks project was successfully copied, but the new op mode cannot be run until it " +
+              "is saved in the blocks editor.");
+        }
         return null;
       }
     });
@@ -739,7 +744,7 @@ public class ProjectsUtil {
       throw new IllegalArgumentException();
     }
 
-    lockProjectsWhile(new ThrowingCallable<Void, IOException>() {
+    ProjectsLockManager.lockProjectsWhile(new ThrowingCallable<Void, IOException>() {
       @Override public Void call() throws IOException {
         File blkFile = new File(BLOCK_OPMODES_DIR, projectName + BLOCKS_BLK_EXT);
         String blkFileContent = FileUtil.readFile(blkFile);
@@ -786,7 +791,7 @@ public class ProjectsUtil {
    */
   public static Boolean deleteProjects(final String[] projectNames) {
 
-    return lockProjectsWhile(new Supplier<Boolean>() {
+    return ProjectsLockManager.lockProjectsWhile(new Supplier<Boolean>() {
       @Override public Boolean get() {
         for (String projectName : projectNames) {
           if (!isValidProjectName(projectName)) {
@@ -857,7 +862,7 @@ public class ProjectsUtil {
   public static void saveBlocksJava(final String relativeFileName, final String javaContent)
       throws IOException {
 
-    lockProjectsWhile(new ThrowingCallable<Void, IOException>() {
+    ProjectsLockManager.lockProjectsWhile(new ThrowingCallable<Void, IOException>() {
       @Override public Void call() throws IOException {
         AppUtil.getInstance().ensureDirectoryExists(BLOCK_OPMODES_DIR, false);
 

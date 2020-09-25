@@ -1,4 +1,18 @@
-// Copyright 2016 Google Inc.
+/*
+ * Copyright 2016 Google LLC
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 package com.google.blocks.ftcrobotcontroller.runtime;
 
@@ -47,5 +61,33 @@ class TelemetryAccess extends Access {
   public void update() {
     startBlockExecution(BlockType.FUNCTION, ".update");
     telemetry.update();
+  }
+
+  @SuppressWarnings("unused")
+  @JavascriptInterface
+  public void speakTextData(String data, String languageCode, String countryCode) {
+    startBlockExecution(BlockType.FUNCTION, ".speak");
+    if (data != null) {
+      telemetry.speak(data, languageCode, countryCode);
+    }
+  }
+
+  @SuppressWarnings("unused")
+  @JavascriptInterface
+  public void speakObjectData(Object data, String languageCode, String countryCode) {
+    startBlockExecution(BlockType.FUNCTION, ".speak");
+    // Avoid calling data.toString() in case data is null.
+    telemetry.speak("" + data, languageCode, countryCode);
+  }
+
+  @SuppressWarnings("unused")
+  @JavascriptInterface
+  public void setDisplayFormat(String displayFormatString) {
+    startBlockExecution(BlockType.FUNCTION, ".setDisplayFormat");
+    Telemetry.DisplayFormat displayFormat =
+        checkArg(displayFormatString, Telemetry.DisplayFormat.class, "displayFormat");
+    if (displayFormat != null) {
+      telemetry.setDisplayFormat(displayFormat);
+    }
   }
 }

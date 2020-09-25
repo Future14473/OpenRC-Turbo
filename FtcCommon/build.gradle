@@ -1,13 +1,13 @@
 apply plugin: 'com.android.library'
 
 android {
-    compileSdkVersion 26
+    compileSdkVersion 28
 
     defaultConfig {
-        minSdkVersion 19
-        targetSdkVersion 26
-        versionCode 67
-        versionName "11.9"
+        minSdkVersion 23
+        targetSdkVersion 28
+        versionCode 76
+        versionName "14.0"
     }
 }
 
@@ -20,8 +20,8 @@ dependencies {
     implementation project(':Hardware')
     implementation project(':Inspection')
     implementation project(':RobotCore')
+    implementation project(':RobotServer')
 
-    turboImplementation project(':RobotServer')
     //turboImplementation project(':OpenRC')
 
     //extremeTurboImplementation project(':OpenRC')

@@ -32,7 +32,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 package org.firstinspires.ftc.robotcore.external;
 
-import android.support.annotation.Nullable;
+import androidx.annotation.Nullable;
 
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
@@ -286,6 +286,30 @@ public interface Telemetry
     boolean removeAction(Object token);
 
     //----------------------------------------------------------------------------------------------
+    // Text to Speech
+    //----------------------------------------------------------------------------------------------
+
+    /**
+     * Directs the Driver Station device to speak the given text using TextToSpeech functionality,
+     * with the same language and country codes that were previously used, or the default language
+     * and country.
+     *
+     * @param text the text to be spoken
+     */
+    void speak(String text);
+
+    /**
+     * Directs the Driver Station device to speak the given text using TextToSpeech functionality,
+     * with the given language and country codes.
+     *
+     * @param text          the text to be spoken
+     * @param languageCode  an ISO 639 alpha-2 or alpha-3 language code, or a language subtag up to
+     *                      8 characters in length
+     * @param countryCode   an ISO 3166 alpha-2 country code, or a UN M.49 numeric-3 area code
+     */
+    void speak(String text, String languageCode, String countryCode);
+
+    //----------------------------------------------------------------------------------------------
     // Transmission
     //----------------------------------------------------------------------------------------------
 
@@ -514,6 +538,20 @@ public interface Telemetry
      * @see #getCaptionValueSeparator()
      */
     void setCaptionValueSeparator(String captionValueSeparator);
+
+    enum DisplayFormat
+        {
+        CLASSIC,   // What you've all come to know and love (or not) since 2015
+        MONOSPACE, // Same as classic, except uses a monospaced font so you can column align data
+        HTML;      // Allows use of a subset of HTML tags, enabling "rich text" display (e.g. color & size)
+        }
+
+    /**
+     * Sets the telemetry display format on the Driver Station. See the comments on {@link DisplayFormat}.
+     *
+     * @param displayFormat the telemetry display format the Driver Station should use
+     */
+    void setDisplayFormat(DisplayFormat displayFormat);
 
     //----------------------------------------------------------------------------------------------
     // Properties

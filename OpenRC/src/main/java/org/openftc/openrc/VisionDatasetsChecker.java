@@ -27,8 +27,13 @@ import android.content.DialogInterface;
 
 import com.qualcomm.robotcore.eventloop.opmode.AnnotatedOpModeManager;
 import com.qualcomm.robotcore.eventloop.opmode.OpModeRegistrar;
+import com.qualcomm.robotcore.hardware.configuration.LynxConstants;
+import com.qualcomm.robotcore.util.RobotLog;
 
+import org.firstinspires.ftc.robotcore.internal.network.NetworkConnectionHandler;
+import org.firstinspires.ftc.robotcore.internal.network.PeerStatusCallback;
 import org.firstinspires.ftc.robotcore.internal.system.AppUtil;
+import org.firstinspires.ftc.robotcore.internal.ui.UILocation;
 
 import java.io.File;
 import java.util.concurrent.CountDownLatch;
@@ -36,6 +41,31 @@ import java.util.concurrent.CountDownLatch;
 public class VisionDatasetsChecker
 {
     private static boolean alreadyCheckedThisSession = false;
+    private static Runnable onPeerConnectedRunnable = null;
+
+    static
+    {
+        if(LynxConstants.isRevControlHub())
+        {
+            NetworkConnectionHandler.getInstance().registerPeerStatusCallback(new PeerStatusCallback()
+            {
+                @Override
+                public void onPeerConnected()
+                {
+                    if(onPeerConnectedRunnable != null)
+                    {
+                        onPeerConnectedRunnable.run();
+                    }
+                }
+
+                @Override
+                public void onPeerDisconnected()
+                {
+
+                }
+            });
+        }
+    }
 
     @OpModeRegistrar
     public static void run(Context context, AnnotatedOpModeManager manager)
@@ -45,39 +75,9 @@ public class VisionDatasetsChecker
             return;
         }
 
-        final CountDownLatch latch = new CountDownLatch(1);
-
         if(!checkFiles())
         {
-            AppUtil.getInstance().runOnUiThread(new Runnable()
-            {
-                @Override
-                public void run()
-                {
-                    AlertDialog.Builder builder = new AlertDialog.Builder(AppUtil.getInstance().getActivity());
-                    builder.setTitle("Missing files!");
-                    builder.setMessage("Some Vuforia / TensorFlow dataset files are missing from the FIRST folder on the internal storage. Please check to make sure you copied them as per the setup instructions in the readme. The app will now be closed.");
-                    builder.setCancelable(false);
-                    builder.setPositiveButton("OK", new DialogInterface.OnClickListener()
-                    {
-                        @Override
-                        public void onClick(DialogInterface dialogInterface, int i)
-                        {
-                            System.exit(1);
-                        }
-                    });
-                    builder.show();
-                }
-            });
-
-            try
-            {
-                latch.await();
-            }
-            catch (InterruptedException e)
-            {
-                e.printStackTrace();
-            }
+            showError("Missing files!", "Some Vuforia / TensorFlow dataset files are missing from the FIRST/vision folder on the internal storage. Please check to make sure you copied them as per the setup instructions in the readme");
         }
 
         alreadyCheckedThisSession = true;
@@ -90,28 +90,27 @@ public class VisionDatasetsChecker
                 /*
                  * Velocity Vortex
                  */
-                "/sdcard/FIRST/FTC_2016-17.dat",
-                "/sdcard/FIRST/FTC_2016-17.xml",
+                "/sdcard/FIRST/vision/FTC_2016-17.dat",
+                "/sdcard/FIRST/vision/FTC_2016-17.xml",
 
                 /*
                  * Relic Recovery
                  */
-                "/sdcard/FIRST/RelicVuMark.dat",
-                "/sdcard/FIRST/RelicVuMark.xml",
+                "/sdcard/FIRST/vision/RelicVuMark.dat",
+                "/sdcard/FIRST/vision/RelicVuMark.xml",
 
                 /*
-                 * Rover Ruckus
+                 * Generic
                  */
-                "/sdcard/FIRST/RoverRuckus.dat",
-                "/sdcard/FIRST/RoverRuckus.xml",
-                "/sdcard/FIRST/RoverRuckus.tflite",
+                "/sdcard/FIRST/vision/StonesAndChips.dat",
+                "/sdcard/FIRST/vision/StonesAndChips.xml",
 
                 /*
-                 * SkyStone
+                 * Ultimate goal
                  */
-                "/sdcard/FIRST/Skystone.xml",
-                "/sdcard/FIRST/Skystone.dat",
-                "/sdcard/FIRST/Skystone.tflite"};
+                "/sdcard/FIRST/vision/UltimateGoal.xml",
+                "/sdcard/FIRST/vision/UltimateGoal.dat",
+                "/sdcard/FIRST/vision/UltimateGoal.tflite"};
 
         for(String s : files)
         {
@@ -122,5 +121,36 @@ public class VisionDatasetsChecker
         }
 
         return true;
+    }
+
+    private static void showError(final String title, final String message)
+    {
+        RobotLog.setGlobalWarningMessage(message);
+
+        if(LynxConstants.isRevControlHub())
+        {
+            //If robocol isn't linked yet, register the dialog for later
+            if(!NetworkConnectionHandler.getInstance().isPeerConnected())
+            {
+                onPeerConnectedRunnable = new Runnable()
+                {
+                    @Override
+                    public void run()
+                    {
+                        AppUtil.getInstance().showAlertDialog(UILocation.BOTH, title, message);
+                    }
+                };
+            }
+
+            //Robocol is linked, show dialog now
+            else
+            {
+                AppUtil.getInstance().showAlertDialog(UILocation.BOTH, title, message);
+            }
+        }
+        else
+        {
+            AppUtil.getInstance().showAlertDialog(UILocation.ONLY_LOCAL, title, message);
+        }
     }
 }

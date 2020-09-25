@@ -33,7 +33,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 package com.qualcomm.hardware.lynx;
 
 import android.content.Context;
-import android.support.annotation.NonNull;
+import androidx.annotation.NonNull;
 
 import com.qualcomm.hardware.lynx.commands.LynxCommand;
 import com.qualcomm.hardware.lynx.commands.LynxMessage;
@@ -402,6 +402,12 @@ public abstract class LynxController extends LynxCommExceptionHandler implements
             }
 
         @Override
+        public String getNullableFirmwareVersionString()
+            {
+            return null;
+            }
+
+        @Override
         public String getDeviceName()
             {
             return LynxController.this.module.getDeviceName() + " (pretend)";
@@ -522,6 +528,21 @@ public abstract class LynxController extends LynxCommExceptionHandler implements
         @Override public void disengage()
             {
             this.isEngaged = false;
+            }
+
+        @Override public void noteDatagramReceived()
+            {
+            // do nothing
+            }
+
+        @Override public void noteNotResponding()
+            {
+            // do nothing
+            }
+
+        @Override public boolean isNotResponding()
+            {
+            return false;
             }
         }
     }

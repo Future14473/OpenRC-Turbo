@@ -1,13 +1,17 @@
+import java.text.SimpleDateFormat
+
 apply plugin: 'com.android.library'
 
 android {
-    compileSdkVersion 26
+    compileSdkVersion 28
 
     defaultConfig {
-        minSdkVersion 19
-        targetSdkVersion 26
-        versionCode 35
-        versionName "5.3"
+        minSdkVersion 23
+        targetSdkVersion 28
+        versionCode 38
+        versionName "6.0"
+
+        buildConfigField "String", "BUILD_TIME", '"' + (new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ", Locale.ROOT).format(new Date())) + '"'
     }
 
     buildTypes {
@@ -37,22 +41,22 @@ dependencies {
     extremeTurboApi project(':Inspection')
     extremeTurboApi project(':Hardware')
     extremeTurboApi project(':OpenRC')
+    extremeTurboApi project(':RobotServer')
 
-    stockApi 'org.openftc:ftccommon-stock:5.3'
-    stockApi 'org.openftc:robotcore-stock:5.3'
-    stockApi 'org.openftc:inspection-stock:5.3'
-    stockApi 'org.openftc:blocks-stock:5.3'
-    stockApi 'org.openftc:hardware-stock:5.3'
-    stockApi 'org.openftc:onbotjava-stock:5.3'
-    stockApi 'org.openftc:robotserver-stock:5.3'
-    stockApi 'com.android.support:support-compat:26.0.0'
+    stockApi 'org.firstinspires.ftc:Inspection:6.0.1'
+    stockApi 'org.firstinspires.ftc:Blocks:6.0.1'
+    stockApi 'org.firstinspires.ftc:RobotCore:6.0.1'
+    stockApi 'org.firstinspires.ftc:RobotServer:6.0.1'
+    stockApi 'org.firstinspires.ftc:OnBotJava:6.0.1'
+    stockApi 'org.firstinspires.ftc:Hardware:6.0.1'
+    stockApi 'org.firstinspires.ftc:FtcCommon:6.0.1'
+    stockApi 'androidx.appcompat:appcompat:1.2.0'
 
     /*
      * Things needed regardless of turbo/extremeTurbo/stock
      * that are normally pulled in by modules but must be
      * pulled in here for stock
      */
-    stockApi 'com.android.support:support-annotations:28.0.0'
     stockApi 'org.openftc:tfod-google-ftcsdk-repackaged:5.0' //Specific version of TFOD core library used by FTC SDK
     stockApi 'org.openftc:tfod-ftc-repackaged:5.0' //FTC specific addons to core TFOD lib
 

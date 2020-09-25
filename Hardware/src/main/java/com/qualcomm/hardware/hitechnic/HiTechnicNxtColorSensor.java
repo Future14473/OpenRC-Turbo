@@ -31,7 +31,7 @@
 package com.qualcomm.hardware.hitechnic;
 
 import android.graphics.Color;
-import android.support.annotation.ColorInt;
+import androidx.annotation.ColorInt;
 
 import com.qualcomm.robotcore.hardware.ColorSensor;
 import com.qualcomm.robotcore.hardware.I2cWaitControl;
@@ -176,6 +176,16 @@ public class HiTechnicNxtColorSensor extends I2cDeviceSynchDevice<I2cDeviceSynch
     // could reasonably read given the red, green, and blue values.
     result.alpha = Math.max(Math.max(result.red, result.green), result.blue);
     return result;
+  }
+
+  @Override
+  public float getGain() {
+    return 1;
+  }
+
+  @Override
+  public void setGain(float newGain) {
+
   }
 
   @Override

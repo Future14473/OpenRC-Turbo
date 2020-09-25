@@ -55,9 +55,9 @@ import android.os.Handler;
 import android.os.Looper;
 import android.os.Parcel;
 import android.os.ResultReceiver;
-import android.support.annotation.ColorInt;
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
+import androidx.annotation.ColorInt;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import android.text.InputType;
 import android.text.TextUtils;
 import android.widget.EditText;
@@ -65,6 +65,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.qualcomm.robotcore.R;
+import com.qualcomm.robotcore.hardware.configuration.LynxConstants;
 import com.qualcomm.robotcore.robocol.Command;
 import com.qualcomm.robotcore.util.RobotLog;
 import com.qualcomm.robotcore.util.ThreadPool;
@@ -81,6 +82,8 @@ import org.firstinspires.ftc.robotcore.internal.network.NetworkConnectionHandler
 import org.firstinspires.ftc.robotcore.internal.network.RobotCoreCommandList;
 import org.firstinspires.ftc.robotcore.internal.ui.ProgressParameters;
 import org.firstinspires.ftc.robotcore.internal.ui.UILocation;
+import org.firstinspires.ftc.robotcore.internal.webserver.websockets.FtcWebSocketMessage;
+import org.firstinspires.ftc.robotcore.internal.webserver.websockets.WebSocketManager;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -157,6 +160,14 @@ public class AppUtil
     /** Where to place webcam calibration files */
     public static final File WEBCAM_CALIBRATIONS_DIR = new File(FIRST_FOLDER + "/webcamcalibrations/");
 
+    /** Where to place TensorFlow Lite model files */
+    public static final File TFLITE_MODELS_DIR = new File(FIRST_FOLDER + "/tflitemodels/");
+
+    /** Progress WebSocket constants */
+    public static final String PROGRESS_NAMESPACE = "progress";
+    public static final String SHOW_PROGRESS_MSG = "showProgress";
+    public static final String DISMISS_PROGRESS_MSG = "dismissProgress";
+
     //----------------------------------------------------------------------------------------------
     // Static State
     //----------------------------------------------------------------------------------------------
@@ -184,6 +195,7 @@ public class AppUtil
 
     private final Object        usbfsRootLock = new Object();
     private final Object        dialogLock = new Object();
+    private final Object        timeLock = new Object();
     private @NonNull Application application;
     private LifeCycleMonitor    lifeCycleMonitor;
     private Activity            rootActivity;
@@ -193,6 +205,7 @@ public class AppUtil
     private Random              random;
     private @Nullable String    usbFileSystemRoot; // never transitions from non-null to null
     private final WeakReferenceSet<UsbFileSystemRootListener> usbfsListeners = new WeakReferenceSet<>();
+    private @Nullable WebSocketManager webSocketManager;
 
     //----------------------------------------------------------------------------------------------
     // Construction
@@ -624,26 +637,6 @@ public class AppUtil
         System.exit(exitCode);
         }
 
-    public void finishRootActivityAndExitApp()
-        {
-        synchronousRunOnUiThread(new Runnable()
-            {
-            @Override public void run()
-                {
-                RobotLog.vv(TAG, "finishRootActivityAndExitApp()");
-                if (Build.VERSION.SDK_INT >= 21)
-                    {
-                    rootActivity.finishAndRemoveTask();
-                    }
-                else
-                    {
-                    rootActivity.finish();
-                    }
-                exitApplication();
-                }
-            });
-        }
-
     public void exitApplication(int resultCode)
         {
         RobotLog.vv(TAG, "exitApplication(%d)", resultCode);
@@ -717,14 +710,7 @@ public class AppUtil
 
     public static @ColorInt int getColor(int id)
         {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M)
-            {
-            return getDefContext().getColor(id);
-            }
-        else
-            {
-            return getDefContext().getResources().getColor(id);
-            }
+        return getDefContext().getColor(id);
         }
 
     /**
@@ -817,6 +803,12 @@ public class AppUtil
     // Progress Dialog remoting
     //----------------------------------------------------------------------------------------------
 
+    public void setWebSocketManager(WebSocketManager webSocketManager)
+        {
+        this.webSocketManager = webSocketManager;
+        webSocketManager.registerNamespaceAsBroadcastOnly(PROGRESS_NAMESPACE);
+        }
+
     public void showProgress(UILocation uiLocation, final String message, final double fractionComplete)
         {
         showProgress(uiLocation, message, ProgressParameters.fromFraction(fractionComplete));
@@ -849,16 +841,31 @@ public class AppUtil
                     currentProgressDialog.setCanceledOnTouchOutside(false);
                     currentProgressDialog.show();
                     }
-                currentProgressDialog.setProgress(progressParameters.cur);
+                if (progressParameters.cur == 0)
+                    {
+                    // In case we get stuck at zero, show an indeterminate progress bar until we see further progress
+                    currentProgressDialog.setIndeterminate(true);
+                    }
+                else
+                    {
+                    currentProgressDialog.setIndeterminate(false);
+                    currentProgressDialog.setProgress(progressParameters.cur);
+                    }
                 }
             });
 
+        RobotCoreCommandList.ShowProgress showProgress = new RobotCoreCommandList.ShowProgress();
+        showProgress.message = message;
+        showProgress.cur = progressParameters.cur;
+        showProgress.max = progressParameters.max;
+
+        if (webSocketManager != null)
+            {
+            webSocketManager.broadcastToNamespace(PROGRESS_NAMESPACE, new FtcWebSocketMessage(PROGRESS_NAMESPACE, SHOW_PROGRESS_MSG, showProgress.serialize()));
+            }
+
         if (uiLocation == UILocation.BOTH)
             {
-            RobotCoreCommandList.ShowProgress showProgress = new RobotCoreCommandList.ShowProgress();
-            showProgress.message = message;
-            showProgress.cur = progressParameters.cur;
-            showProgress.max = progressParameters.max;
             NetworkConnectionHandler.getInstance().sendCommand(new Command(RobotCoreCommandList.CMD_SHOW_PROGRESS, showProgress.serialize()));
             }
         }
@@ -876,6 +883,11 @@ public class AppUtil
                     }
                 }
             });
+
+        if (webSocketManager != null)
+            {
+            webSocketManager.broadcastToNamespace(PROGRESS_NAMESPACE, new FtcWebSocketMessage(PROGRESS_NAMESPACE, DISMISS_PROGRESS_MSG));
+            }
 
         if (uiLocation == UILocation.BOTH)
             {
@@ -1396,7 +1408,6 @@ public class AppUtil
                 {
                 Toast toast = Toast.makeText(getDefContext(), msg, duration);
                 TextView message = (TextView) toast.getView().findViewById(android.R.id.message);
-                message.setTextColor(getColor(R.color.text_toast));
                 message.setTextSize(18);
                 toast.show();
                 }
@@ -1542,27 +1553,69 @@ public class AppUtil
         }
 
     /**
-     * Attempts to set the clock returned by {@link #getWallClockTime()}. W/o a modified Android
-     * kernel, this will be unsuccessful, due to a check in kernel/security/commoncap.c. On the Control
-     * Hub, that has been disabled. Note that no error is reported on failure.
+     * Attempts to set the clock returned by {@link #getWallClockTime()}.
      *
-     * Also attempts to set the current time zone for the system, not just this process.
+     * W/o a modified Android kernel, this will be unsuccessful, due to a check in
+     * kernel/security/commoncap.c. On the Control Hub, that has been disabled. Note that no error
+     * is reported on failure.
+     *
+     * Note that this attempts to set the current time for the whole system, not just this process.
      */
     public void setWallClockTime(long millis)
         {
-        nativeSetCurrentTimeMillis(millis);
+        try
+            {
+            nativeSetCurrentTimeMillis(millis);
+            }
+        catch (UnsatisfiedLinkError e)
+            {
+            //ignored
+            }
         }
 
     /**
-     * Set the system timezone by whatever means necessary :-)
+     * Attempts to atomically set the timezone and clock returned by {@link #getWallClockTime()},
+     * if we know that the currently set time cannot be correct.
+     *
+     * W/o a modified Android kernel, this will be unsuccessful, due to a check in
+     * kernel/security/commoncap.c. On the Control Hub, that has been disabled. Note that no error
+     * is reported on failure.
+     *
+     * Note that this attempts to set the timezone and current time for the whole system,
+     * not just this process.
+     */
+    public void setWallClockIfCurrentlyInsane(long timeMillis, @Nullable String timezone)
+        {
+        synchronized (timeLock)
+            {
+            boolean timeCurrentlySane = isSaneWalkClockTime(getWallClockTime());
+            boolean acceptableTimezone = (timezone != null && !timezone.isEmpty());
+            if (!timeCurrentlySane && isSaneWalkClockTime(timeMillis) && acceptableTimezone)
+                {
+                setWallClockTime(timeMillis);
+                setTimeZone(timezone);
+                }
+            }
+        }
+
+    /**
+     * Set the system timezone, if we are running on a Control Hub.
      */
     public void setTimeZone(String timeZone)
         {
+        if (!LynxConstants.isRevControlHub()) return; // If this code runs on a non-CH device, an exception is thrown
         TimeZone before = TimeZone.getDefault();
         AlarmManager alarmManager = (AlarmManager)AppUtil.getDefContext().getSystemService(Context.ALARM_SERVICE);
-        alarmManager.setTimeZone(timeZone);
-        TimeZone.setDefault(null); TimeZone after = TimeZone.getDefault();
-        RobotLog.vv(TAG, "attempted to set timezone: before=%s after=%s", before.getID(), after.getID());
+        try
+            {
+            alarmManager.setTimeZone(timeZone);
+            TimeZone.setDefault(null); TimeZone after = TimeZone.getDefault();
+            RobotLog.vv(TAG, "attempted to set timezone: before=%s after=%s", before.getID(), after.getID());
+            }
+        catch (IllegalArgumentException e)
+            {
+            RobotLog.ee(TAG, "Attempted to set invalid timezone: %s", before.getID());
+            }
         }
 
     /**

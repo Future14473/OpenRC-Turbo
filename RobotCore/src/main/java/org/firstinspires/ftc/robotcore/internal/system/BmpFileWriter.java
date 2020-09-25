@@ -34,7 +34,7 @@ package org.firstinspires.ftc.robotcore.internal.system;
 
 import android.graphics.Bitmap;
 import android.graphics.Color;
-import android.support.annotation.ColorInt;
+import androidx.annotation.ColorInt;
 
 import com.qualcomm.robotcore.util.ClassUtil;
 
@@ -221,6 +221,6 @@ public class BmpFileWriter
 
     static
         {
-        System.loadLibrary("RobotCore");
+        //System.loadLibrary("RobotCore");
         }
     }

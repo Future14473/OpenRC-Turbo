@@ -5,7 +5,7 @@ android {
     buildToolsVersion "29.0.0"
 
     defaultConfig {
-        minSdkVersion 19
+        minSdkVersion 23
         targetSdkVersion 28
         versionCode 1
         versionName "1.0"
@@ -19,9 +19,9 @@ dependencies {
 
     implementation project (':RobotCore')
     implementation project (':FtcCommon')
+    implementation project (':RobotServer')
 
     turboImplementation project (':Blocks')
-    turboImplementation project (':RobotServer')
 
     implementation fileTree(dir: 'libs', include: ['*.jar'])
 }
