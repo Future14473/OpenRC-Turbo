@@ -50,16 +50,13 @@ public class Mecanum {
         s = Math.cos(angle);
     }
 
-    public void move(  double f, double s, double turn){
+    public void move(double f, double s, double turn){
 //        set_forward_strafe(angle);
         set_motor_values(f, s, turn);
         topRightDrive.setVelocity(topRightPower);
         topLeftDrive.setVelocity(topLeftPower);
         bottomLeftDrive.setVelocity(bottomLeftPower);
         bottomRightDrive.setVelocity(bottomRightPower);
-        topRightDrive.setVelocity(topRightPower);
-        topLeftDrive.setVelocity(topLeftPower);
-        bottomLeftDrive.setVelocity(bottomLeftPower);
-        bottomRightDrive.setVelocity(bottomRightPower);
+
     }
 }
